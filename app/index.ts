@@ -105,16 +105,16 @@ app.get("/get-profile-details", async (req: Request, res: Response) => {
   } catch (error) {
     console.log("error in scrapyting profile info : ", error);
 
-    // let ss = await page.screenshot();
-    // res.contentType("image/jpeg");
+    let ss = await page.screenshot();
+    res.contentType("image/jpeg");
 
-    res.send({
-      follower_count,
-      post_count,
-      following_count,
-      post_info,
-      success: false,
-    });
+    // res.send({
+    //   follower_count,
+    //   post_count,
+    //   following_count,
+    //   post_info,
+    //   success: false,
+    // });
   } finally {
     await page.close();
     await browser!.close();
