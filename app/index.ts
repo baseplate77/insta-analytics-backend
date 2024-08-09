@@ -8,7 +8,7 @@ dotenv.config();
 const app: Express = express();
 const port = process.env.PORT || 3000;
 
-// app.use(cors());
+app.use(cors());
 
 app.get("/", (req: Request, res: Response) => {
   res.send("Express + TypeScript Server");
@@ -37,7 +37,7 @@ app.get("/get-profile-details", async (req: Request, res: Response) => {
 
   const browser = await globalBrowser.initBrower();
   let post_info = [];
-  let post_count, follower_count, following_count;
+  let post_count, follower_count, following_count, profile_pic;
   let page = await browser!.newPage();
 
   await page.authenticate({
@@ -98,19 +98,22 @@ app.get("/get-profile-details", async (req: Request, res: Response) => {
       "ul > li:nth-child(3) > div > button > span > span",
       (el) => el.innerHTML
     );
+
+    profile_pic = await page.$eval("div > div > span > img", (el) => el.src);
   } catch (error) {
     console.log("error in scrapyting profile info : ", error);
 
-    let ss = await page.screenshot();
-    res.contentType("image/jpeg");
+    // let ss = await page.screenshot();
+    // res.contentType("image/jpeg");
 
-    // res.send({
-    //   follower_count,
-    //   post_count,
-    //   following_count,
-    //   post_info,
-    //   success: false,
-    // });
+    res.send({
+      follower_count,
+      post_count,
+      following_count,
+      post_info,
+      profile_pic,
+      success: false,
+    });
   } finally {
     console.log("close broswer");
 
@@ -122,6 +125,7 @@ app.get("/get-profile-details", async (req: Request, res: Response) => {
     post_count,
     following_count,
     post_info,
+    profile_pic,
     success: true,
   });
 });
