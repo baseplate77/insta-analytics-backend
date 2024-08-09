@@ -49,6 +49,7 @@ app.get("/get-profile-details", async (req: Request, res: Response) => {
   });
   await page.goto(baseUrl, {
     waitUntil: ["load", "networkidle0"],
+    timeout: 90000,
   });
   await delay(10000);
   try {
