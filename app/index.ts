@@ -76,7 +76,7 @@ app.get("/get-profile-details", async (req: Request, res: Response) => {
 
           console.log("commentCouint :", comment_count, like_count);
 
-          post_info.push([{ comment_count, like_count }]);
+          post_info.push({ comment_count, like_count });
           await delay(500);
         }
       }
