@@ -48,7 +48,7 @@ app.get("/get-profile-details", async (req: Request, res: Response) => {
     waitUntil: ["load", "networkidle0"],
     timeout: 90000,
   });
-  await delay(10000);
+
   try {
     // post
     try {
@@ -98,14 +98,6 @@ app.get("/get-profile-details", async (req: Request, res: Response) => {
       "ul > li:nth-child(3) > div > button > span > span",
       (el) => el.innerHTML
     );
-
-    res.send({
-      follower_count,
-      post_count,
-      following_count,
-      post_info,
-      success: true,
-    });
   } catch (error) {
     console.log("error in scrapyting profile info : ", error);
 
@@ -120,9 +112,18 @@ app.get("/get-profile-details", async (req: Request, res: Response) => {
     //   success: false,
     // });
   } finally {
+    console.log("close broswer");
+
     await page.close();
     await browser!.close();
   }
+  res.send({
+    follower_count,
+    post_count,
+    following_count,
+    post_info,
+    success: true,
+  });
 });
 
 app.listen(port, () => {
