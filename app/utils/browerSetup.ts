@@ -16,7 +16,6 @@ class GlobalBroswer {
     // this.initBrower();
   }
   initBrower = async () => {
-    if (this.browser !== undefined) return this.browser;
     const puppeteer = addExtra(vanillaPuppeteer);
     puppeteer.use(Stealth());
     puppeteer.use(Recaptcha());
