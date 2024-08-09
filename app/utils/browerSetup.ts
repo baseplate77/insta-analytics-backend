@@ -31,7 +31,7 @@ class GlobalBroswer {
     console.log("random proxy :", randomProxy);
 
     this.browser = await puppeteer.launch({
-      // executablePath: "/usr/bin/google-chrome",
+      executablePath: "/usr/bin/google-chrome",
       ignoreHTTPSErrors: true,
 
       protocolTimeout: 0,
