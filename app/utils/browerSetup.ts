@@ -5,6 +5,7 @@ import vanillaPuppeteer, {
 import { addExtra } from "puppeteer-extra";
 import Stealth from "puppeteer-extra-plugin-stealth";
 import Recaptcha from "puppeteer-extra-plugin-recaptcha";
+import { proxyList } from "../constants";
 // let browser: Browser = undefined;
 
 class GlobalBroswer {
@@ -25,6 +26,10 @@ class GlobalBroswer {
     //     interceptResolutionPriority: DEFAULT_INTERCEPT_RESOLUTION_PRIORITY,
     //   })
     // );
+    const randomProxy = proxyList[Math.floor(Math.random() * proxyList.length)];
+
+    console.log("random proxy :", randomProxy);
+
     this.browser = await puppeteer.launch({
       // executablePath: "/usr/bin/google-chrome",
       ignoreHTTPSErrors: true,
@@ -41,6 +46,8 @@ class GlobalBroswer {
         "--deterministic-fetch",
         "--disable-features=IsolateOrigins",
         "--disable-site-isolation-trials",
+
+        `--proxy-server=${randomProxy}`,
 
         // "--disable-gpu",
         // "--disable-dev-shm-usage",
