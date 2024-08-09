@@ -2,11 +2,13 @@ import express, { Express, Request, Response } from "express";
 import dotenv from "dotenv";
 import delay from "./utils/delay";
 import { globalBrowser } from "./utils/browerSetup";
-
+import cors from "cors";
 dotenv.config();
 
 const app: Express = express();
 const port = process.env.PORT || 3000;
+
+app.use(cors());
 
 app.get("/", (req: Request, res: Response) => {
   res.send("Express + TypeScript Server");
@@ -37,11 +39,6 @@ app.get("/get-profile-details", async (req: Request, res: Response) => {
   let post_info = [];
   let post_count, follower_count, following_count;
   let page = await browser!.newPage();
-  console.log(
-    "proxy user and password ;",
-    process.env.PROXY_USERNAME,
-    process.env.PROXY_PASSWORD
-  );
 
   await page.authenticate({
     username: process.env.PROXY_USERNAME as string,

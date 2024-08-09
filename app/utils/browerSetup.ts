@@ -28,7 +28,7 @@ class GlobalBroswer {
     // );
     const randomProxy = proxyList[Math.floor(Math.random() * proxyList.length)];
 
-    console.log("random proxy :", randomProxy);
+    // console.log("random proxy :", randomProxy);
 
     this.browser = await puppeteer.launch({
       executablePath: "/usr/bin/google-chrome",
