@@ -70,6 +70,9 @@ app.get("/get-profile-details", async (req: Request, res: Response) => {
             "a > div.x1ey2m1c.x78zum5.xds687c.xdt5ytf.xl56j7k.x10l6tqk.x17qophe.x13vifvy > ul > li:nth-child(1) > span.x1lliihq.x1plvlek.xryxfnj.x1n2onr6.x193iq5w.xeuugli.x1fj9vlw.x13faqbe.x1vvkbs.x1s928wv.xhkezso.x1gmr53x.x1cpjm7i.x1fgarty.x1943h6x.x1i0vuye.xl565be.x1xlr1w8.x9bdzbf.x10wh9bi.x1wdrske.x8viiok.x18hxmgj > span",
             (el) => el.innerHTML
           );
+
+          console.log("commentCouint :", comment_count, like_count);
+
           post_info.push([{ comment_count, like_count }]);
           await delay(500);
         }
