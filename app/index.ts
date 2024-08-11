@@ -2,13 +2,13 @@ import express, { Express, Request, Response } from "express";
 import dotenv from "dotenv";
 import delay from "./utils/delay";
 import { globalBrowser } from "./utils/browerSetup";
-import cors from "cors";
+// import cors from "cors";
 dotenv.config();
 
 const app: Express = express();
 const port = process.env.PORT || 3000;
 
-app.use(cors());
+// app.use(cors());
 
 app.get("/", (req: Request, res: Response) => {
   res.send("Express + TypeScript Server");
@@ -24,6 +24,7 @@ app.get("/insta-login", async (req: Request, res: Response) => {
 
   await page.type('input[name="username"]', "hii there", { delay: 50 });
   await page.type('input[name="password"]', "paswword", { delay: 50 });
+  // await delay(10000);
   await page.click("#loginForm > div > div:nth-child(3) > button");
 
   await page.close();
