@@ -48,37 +48,37 @@ app.get("/insta-login", async (req: Request, res: Response) => {
     console.log("No cookies file found. Please login first to save cookies.");
   }
 
-  // // login using password
-  //   await page.type('input[name="username"]', process.env.INSTAGRAM_USER!, {
-  //     delay: 100,
-  //   });
-  //   await page.type('input[name="password"]', process.env.INSTAGRAM_PASSWORD!, {
-  //     delay: 100,
-  //   });
-  //   await delay(1000);
-  //   await page.click('button[type="submit"]');
-  //   await page.waitForNavigation({ waitUntil: "networkidle2" });
-  //   try {
-  //     console.log("Login successful!");
-  //     await delay(10000);
-  //     console.log("saving the cookies");
+  // login using password
+  await page.type('input[name="username"]', process.env.INSTAGRAM_USER!, {
+    delay: 100,
+  });
+  await page.type('input[name="password"]', process.env.INSTAGRAM_PASSWORD!, {
+    delay: 100,
+  });
+  await delay(1000);
+  await page.click('button[type="submit"]');
+  await page.waitForNavigation({ waitUntil: "networkidle2" });
+  try {
+    console.log("Login successful!");
+    await delay(10000);
+    console.log("saving the cookies");
 
-  //     // await page.waitForSelector('a[href="/accouconsole.log("password :", );nts/edit/"]', { timeout: 10000 });
+    // await page.waitForSelector('a[href="/accouconsole.log("password :", );nts/edit/"]', { timeout: 10000 });
 
-  //     // Save cookies to a file or database
-  //     const cookies = await page.cookies();
-  //     console.log("cookie :", cookies);
+    // Save cookies to a file or database
+    const cookies = await page.cookies();
+    console.log("cookie :", cookies);
 
-  //     fs.writeFileSync(
-  //       path.join(__dirname, "cookies2.json"),
-  //       JSON.stringify(cookies)
-  //     );
-  //     console.log("Cookies saved!");
-  //   } catch (error) {
-  //     console.log("Login failed or additional steps required.", error);
-  //   }
+    fs.writeFileSync(
+      path.join(__dirname, "cookies2.json"),
+      JSON.stringify(cookies)
+    );
+    console.log("Cookies saved!");
+  } catch (error) {
+    console.log("Login failed or additional steps required.", error);
+  }
 
-  // await page.click("#loginForm > div > div:nth-child(3) > button");/
+  await page.click("#loginForm > div > div:nth-child(3) > button");
 
   await page.close();
   await browser!.close();
@@ -116,7 +116,7 @@ app.get("/get-profile-details", async (req: Request, res: Response) => {
   try {
     // post
     try {
-      for (let i = 2; i <= 4; i++) {
+      for (let i = 1; i <= 4; i++) {
         let s = await page.$(`${commentSelector} > div:nth-child(${i})`);
 
         let aTags = await s?.$$("a");
