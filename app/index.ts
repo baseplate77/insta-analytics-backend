@@ -2,6 +2,7 @@ import express, { Express, Request, Response } from "express";
 import dotenv from "dotenv";
 import delay from "./utils/delay";
 import { globalBrowser } from "./utils/browerSetup";
+import { addMockImage, mockPng } from "./utils/imageBlocker";
 // import cors from "cors";
 dotenv.config();
 
@@ -41,22 +42,28 @@ app.get("/get-profile-details", async (req: Request, res: Response) => {
   let post_count, follower_count, following_count, profile_pic;
   let page = await browser!.newPage();
 
+  await addMockImage(page, username as string);
   await page.authenticate({
     username: process.env.PROXY_USERNAME as string,
     password: process.env.PROXY_PASSWORD as string,
   });
   await page.goto(baseUrl, {
-    waitUntil: ["load", "networkidle0"],
+    // waitUntil: ["load", "networkidle0"],
     timeout: 90000,
   });
+  const commentSelector =
+    "div.x9f619.xjbqb8w.x78zum5.x168nmei.x13lgxp2.x5pf9jr.xo71vjh.x1n2onr6.x1plvlek.xryxfnj.x1iyjqo2.x2lwn1j.xeuugli.xdt5ytf.xqjyukv.x1qjc9v5.x1oa3qoh.x1nhvcw1 > article > div > div";
 
+  const follower_count_selector =
+    "ul > li:nth-child(2) > div > button > span > span";
+  await page.waitForSelector(commentSelector, { visible: true });
+  await page.waitForSelector(follower_count_selector, { visible: true });
+  // await delay(1000000);
   try {
     // post
     try {
       for (let i = 2; i <= 4; i++) {
-        let s = await page.$(
-          ` div.x9f619.xjbqb8w.x78zum5.x168nmei.x13lgxp2.x5pf9jr.xo71vjh.x1n2onr6.x1plvlek.xryxfnj.x1iyjqo2.x2lwn1j.xeuugli.xdt5ytf.xqjyukv.x1qjc9v5.x1oa3qoh.x1nhvcw1 > article > div > div > div:nth-child(${i})`
-        );
+        let s = await page.$(`${commentSelector} > div:nth-child(${i})`);
 
         let aTags = await s?.$$("a");
 
@@ -78,7 +85,8 @@ app.get("/get-profile-details", async (req: Request, res: Response) => {
           console.log("commentCouint :", comment_count, like_count);
 
           post_info.push({ comment_count, like_count });
-          await delay(500);
+          const randomDelay = (Math.floor(Math.random() * 10) + 1) * 100;
+          await delay(randomDelay);
         }
       }
     } catch (error) {
@@ -101,6 +109,15 @@ app.get("/get-profile-details", async (req: Request, res: Response) => {
     );
 
     profile_pic = await page.$eval("div > div > span > img", (el) => el.src);
+
+    res.send({
+      follower_count,
+      post_count,
+      following_count,
+      post_info,
+      profile_pic,
+      success: true,
+    });
   } catch (error) {
     console.log("error in scrapyting profile info : ", error);
 
@@ -121,14 +138,6 @@ app.get("/get-profile-details", async (req: Request, res: Response) => {
     await page.close();
     await browser!.close();
   }
-  res.send({
-    follower_count,
-    post_count,
-    following_count,
-    post_info,
-    profile_pic,
-    success: true,
-  });
 });
 
 app.listen(port, () => {
