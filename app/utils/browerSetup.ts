@@ -34,6 +34,7 @@ class GlobalBroswer {
       ignoreHTTPSErrors: true,
 
       protocolTimeout: 0,
+      timeout: 0,
       headless: true,
       // headless: false,
       args: [

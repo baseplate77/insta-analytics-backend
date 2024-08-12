@@ -30,17 +30,6 @@ export const addMockImage = async (page: Page, username: string) => {
           return img ? img.alt : null;
         }, imageUrl);
 
-        console.log(
-          "imagealt :",
-
-          imageAlt,
-          imageAlt &&
-            imageAlt
-              .toLowerCase()
-              .includes(`${username.replace(/\s+/g, "")}`.toLowerCase()) &&
-            imageAlt.toLowerCase().includes("profile picture".toLowerCase()),
-          `${username}'s profile picture`
-        );
         if (
           imageAlt &&
           imageAlt
@@ -75,28 +64,4 @@ export const addMockImage = async (page: Page, username: string) => {
       request.continue();
     }
   });
-  //   let client = await page.createCDPSession();
-  //   await client.send("Fetch.enable", {
-  //     patterns: [
-  //       {
-  //         resourceType: "Image",
-  //         requestStage: "Request",
-  //       },
-  //     ],
-  //   });
-  //   client.on("Fetch.requestPaused", async (e) => {
-  //     client.send("Fetch.fulfillRequest", {
-  //       requestId: e.requestId,
-  //       responseCode: 200,
-  //       body: mockPng,
-  //     });
-  //   });
-
-  //   await Promise.all([
-  //     // client.send("Console.disable"),
-  //     // client.send("ServiceWorker.disable"),
-  //     // client.send("CSS.disable"),
-  //     // client.send("Network.setBypassServiceWorker", { bypass: true }),
-  //     // client.send("Page.setBypassCSP", { enabled: true }),
-  //   ]);
 };

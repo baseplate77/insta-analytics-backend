@@ -3,6 +3,8 @@ import dotenv from "dotenv";
 import delay from "./utils/delay";
 import { globalBrowser } from "./utils/browerSetup";
 import { addMockImage, mockPng } from "./utils/imageBlocker";
+import fs from "fs";
+import path from "path";
 // import cors from "cors";
 dotenv.config();
 
@@ -14,7 +16,6 @@ const port = process.env.PORT || 3000;
 app.get("/", (req: Request, res: Response) => {
   res.send("Express + TypeScript Server");
 });
-
 app.get("/insta-login", async (req: Request, res: Response) => {
   const browser = await globalBrowser.initBrower();
 
@@ -22,11 +23,62 @@ app.get("/insta-login", async (req: Request, res: Response) => {
   await page.goto("https://www.instagram.com/", {
     waitUntil: ["load", "networkidle0"],
   });
+  // Load cookies from the file
+  if (fs.existsSync(path.join(__dirname, "cookies.json"))) {
+    const cookies = JSON.parse(
+      fs.readFileSync(path.join(__dirname, "cookies.json"), "utf-8")
+    );
+    await page.setCookie(...cookies);
 
-  await page.type('input[name="username"]', "hii there", { delay: 50 });
-  await page.type('input[name="password"]', "paswword", { delay: 50 });
-  // await delay(10000);
-  await page.click("#loginForm > div > div:nth-child(3) > button");
+    // Refresh the page or navigate to ensure cookies are applied
+    await page.goto("https://www.instagram.com/", {
+      waitUntil: "networkidle2",
+    });
+
+    // Verify successful login
+    try {
+      await page.waitForSelector('a[href="/accounts/edit/"]', {
+        timeout: 10000,
+      });
+      console.log("Logged in with saved cookies!");
+    } catch (error) {
+      console.log("Failed to login with cookies. Possible need to re-login.");
+    }
+  } else {
+    console.log("No cookies file found. Please login first to save cookies.");
+  }
+
+  // // login using password
+  //   await page.type('input[name="username"]', process.env.INSTAGRAM_USER!, {
+  //     delay: 100,
+  //   });
+  //   await page.type('input[name="password"]', process.env.INSTAGRAM_PASSWORD!, {
+  //     delay: 100,
+  //   });
+  //   await delay(1000);
+  //   await page.click('button[type="submit"]');
+  //   await page.waitForNavigation({ waitUntil: "networkidle2" });
+  //   try {
+  //     console.log("Login successful!");
+  //     await delay(10000);
+  //     console.log("saving the cookies");
+
+  //     // await page.waitForSelector('a[href="/accouconsole.log("password :", );nts/edit/"]', { timeout: 10000 });
+
+  //     // Save cookies to a file or database
+  //     const cookies = await page.cookies();
+  //     console.log("cookie :", cookies);
+
+  //     fs.writeFileSync(
+  //       path.join(__dirname, "cookies2.json"),
+  //       JSON.stringify(cookies)
+  //     );
+  //     console.log("Cookies saved!");
+  //   } catch (error) {
+  //     console.log("Login failed or additional steps required.", error);
+  //   }
+
+  // await page.click("#loginForm > div > div:nth-child(3) > button");/
 
   await page.close();
   await browser!.close();
