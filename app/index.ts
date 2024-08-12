@@ -1,8 +1,8 @@
 import express, { Express, Request, Response } from "express";
 import dotenv from "dotenv";
 import delay from "./utils/delay";
-import { globalBrowser } from "./utils/browerSetup";
-import { addMockImage, mockPng } from "./utils/imageBlocker";
+import { globalBrowser, puppeteerManager } from "./utils/browerSetup";
+import { addMockImage } from "./utils/imageBlocker";
 import fs from "fs";
 import path from "path";
 // import cors from "cors";
@@ -89,10 +89,12 @@ app.get("/get-profile-details", async (req: Request, res: Response) => {
   let { username } = req.query;
   let baseUrl = `https://www.instagram.com/${username}`;
 
-  const browser = await globalBrowser.initBrower();
+  // const browser = await globalBrowser.initBrower();
   let post_info = [];
   let post_count, follower_count, following_count, profile_pic;
-  let page = await browser!.newPage();
+  // let page = await browser!.newPage();
+  let page = await puppeteerManager.createPage();
+  console.log("page count :", puppeteerManager.pageCount);
 
   await addMockImage(page, username as string);
   await page.authenticate({
@@ -186,9 +188,9 @@ app.get("/get-profile-details", async (req: Request, res: Response) => {
     });
   } finally {
     console.log("close broswer");
-
-    await page.close();
-    await browser!.close();
+    puppeteerManager.closePage(page);
+    // await page.close();
+    // await browser!.close();
   }
 });
 
