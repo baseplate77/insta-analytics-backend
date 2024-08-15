@@ -7,6 +7,7 @@ import { addExtra } from "puppeteer-extra";
 import Stealth from "puppeteer-extra-plugin-stealth";
 import Recaptcha from "puppeteer-extra-plugin-recaptcha";
 import { proxyList } from "../constants";
+
 // let browser: Browser = undefined;
 
 class PuppeteerManager {
@@ -16,14 +17,12 @@ class PuppeteerManager {
     this.browser = null;
     this.pageCount = 0;
   }
-
-  // Get browser instance or create one if it doesn't exist
   async getBrowser() {
     if (!this.browser) {
       console.log("Launching new browser instance...");
       const puppeteer = addExtra(vanillaPuppeteer);
       puppeteer.use(Stealth());
-      puppeteer.use(Recaptcha());
+      // puppeteer.use(Recaptcha());
       // puppeteer.use(
       //   AdblockerPlugin({
       //     // blockTrackers: true,
@@ -33,30 +32,55 @@ class PuppeteerManager {
       const randomProxy =
         proxyList[Math.floor(Math.random() * proxyList.length)];
       this.browser = await puppeteer.launch({
-        executablePath: "/usr/bin/google-chrome",
+        // executablePath: "/usr/bin/google-chrome",
         ignoreHTTPSErrors: true,
-
         protocolTimeout: 0,
         timeout: 0,
-        headless: true,
-        // headless: false,
-        args: [
-          "--disable-gpu",
-          "--disable-setuid-sandbox",
-          "--no-first-run",
-          "--no-sandbox",
-          "--no-zygote",
-          "--deterministic-fetch",
-          "--disable-features=IsolateOrigins",
-          "--disable-site-isolation-trials",
+        // targetFilter: (target) => {
+        //   if (target.type() === "page") return true;
 
-          `--proxy-server=${randomProxy}`,
+        //   // try {
+        //   //   if (turnstile === true && target._getTargetInfo().type == "iframe")
+        //   //     return false;
+        //   // } catch (err) {}
 
-          // "--disable-gpu",
-          // "--disable-dev-shm-usage",
-          // "--disable-setuid-sandbox",
-          // "--no-sandbox",
-        ],
+        //   // if (global_target_status === false) return true;
+
+        //   var response = false;
+        //   // try {
+        //   //   response = !!target.url();
+        //   //   if (
+        //   //     [].find((item) =>
+        //   //       String(target.url()).indexOf(String(item) > -1)
+        //   //     )
+        //   //   ) {
+        //   //     response = true;
+        //   //   }
+        //   // } catch (err) {}
+        //   return response;
+        // },
+        // headless: true,
+        headless: false,
+        args: ["--no-sandbox", "--disable-setuid-sandbox"],
+        // args: [
+        //   "--disable-gpu",
+        //   "--disable-setuid-sandbox",
+        //   "--no-first-run",
+        //   "--no-sandbox",
+        //   "--no-zygote",
+        //   "--deterministic-fetch",
+        //   "--disable-features=IsolateOrigins",
+        //   "--disable-site-isolation-trials",
+        //   "--window-size=1920,1080",
+        //   "--auto-open-devtools-for-tabs",
+
+        //   // `--proxy-server=${randomProxy}`,
+
+        //   // "--disable-gpu",
+        //   // "--disable-dev-shm-usage",
+        //   // "--disable-setuid-sandbox",
+        //   // "--no-sandbox",
+        // ],
       });
     } else {
       console.log("Reusing existing browser instance...");
@@ -110,13 +134,14 @@ class GlobalBroswer {
     // console.log("random proxy :", randomProxy);
 
     this.browser = await puppeteer.launch({
-      executablePath: "/usr/bin/google-chrome",
+      // executablePath: "/usr/bin/google-chrome",
       ignoreHTTPSErrors: true,
+      targetFilter: (target) => !!target.url(),
 
       protocolTimeout: 0,
       timeout: 0,
-      headless: true,
-      // headless: false,
+      // headless: true,
+      headless: false,
       args: [
         "--disable-gpu",
         "--disable-setuid-sandbox",
@@ -126,8 +151,9 @@ class GlobalBroswer {
         "--deterministic-fetch",
         "--disable-features=IsolateOrigins",
         "--disable-site-isolation-trials",
+        "--disable-blink-features=AutomationControlled",
 
-        `--proxy-server=${randomProxy}`,
+        // `--proxy-server=${randomProxy}`,
 
         // "--disable-gpu",
         // "--disable-dev-shm-usage",

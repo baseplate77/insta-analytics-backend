@@ -5,13 +5,20 @@ import { globalBrowser, puppeteerManager } from "./utils/browerSetup";
 import { addMockImage } from "./utils/imageBlocker";
 import fs from "fs";
 import path from "path";
-// import cors from "cors";
+import cors from "cors";
+import userAgents from "user-agents";
+// @ts-ignore
+import import_ from "@brillout/import";
+
+import { json } from "stream/consumers";
+import { Page } from "puppeteer";
+// @ts-ignore
 dotenv.config();
 
 const app: Express = express();
 const port = process.env.PORT || 3000;
 
-// app.use(cors());
+app.use(cors());
 
 app.get("/", (req: Request, res: Response) => {
   res.send("Express + TypeScript Server");
@@ -83,6 +90,80 @@ app.get("/insta-login", async (req: Request, res: Response) => {
   await page.close();
   await browser!.close();
   res.send("complete");
+});
+
+app.get("/testing-njl", async (req: Request, res: Response) => {
+  try {
+    // connect;
+    let { connect } = await import_("puppeteer-real-browser");
+    const { page, browser } = await connect({
+      headless: "auto",
+
+      args: [],
+      customConfig: {},
+      skipTarget: [],
+      fingerprint: false,
+      turnstile: true,
+      connectOption: {
+        // executablePath: "/usr/bin/google-chrome",
+      },
+    });
+    let resposneBody = {};
+    // Visit the URL
+    try {
+      page.on("response", async (response: any) => {
+        const url = response.url();
+        const status = response.status();
+        const headers = response.headers();
+        const type = response.request().resourceType();
+        // console.log(url, type);
+        // Only log API responses (JSON responses typically)
+        if (
+          (response.request().resourceType() === "xhr" ||
+            response.request().resourceType() === "fetch") &&
+          url ===
+            "https://api.notjustanalytics.com/profile/ig/analyze/flutteruidev"
+        ) {
+          console.log(`URL: ${url}`);
+          console.log(`Status: ${status}`);
+          console.log("Type:", type);
+
+          try {
+            resposneBody = await response.json(); // Attempt to parse the response as JSON
+
+            await delay(1000);
+            await page.close();
+          } catch (err) {
+            console.log("Response Body is not JSON.");
+          }
+        }
+      });
+      try {
+        await page.goto(
+          "https://app.notjustanalytics.com/analysis/flutteruidev",
+          {
+            waitUntil: ["domcontentloaded", "networkidle2"], // Wait until the network is idle
+            timeout: 60000, // Set a timeout
+          }
+        );
+      } catch (error) {
+        console.log("error in page navigation");
+      }
+      console.log("Page loaded successfully");
+    } catch (error) {
+      console.error("Failed to load the page:", error);
+    } finally {
+      let pages = (await browser.pages()) as Page[];
+      console.log("pages :", pages);
+      let pagesPromise = pages.map((p) => p.close());
+      await Promise.all(pagesPromise);
+      await browser.close();
+      res.send({ resposneBody, success: true });
+    }
+  } catch (error) {
+    console.log("error :", error);
+    res.send({ resposneBody: {}, success: false });
+  }
 });
 
 app.get("/get-profile-details", async (req: Request, res: Response) => {
