@@ -105,7 +105,7 @@ app.get("/testing-njl", async (req: Request, res: Response) => {
       fingerprint: false,
       turnstile: true,
       connectOption: {
-        // executablePath: "/usr/bin/google-chrome",
+        executablePath: "/usr/bin/google-chrome",
       },
     });
     let resposneBody = {};
