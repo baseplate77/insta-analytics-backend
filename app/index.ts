@@ -92,79 +92,79 @@ app.get("/insta-login", async (req: Request, res: Response) => {
   res.send("complete");
 });
 
-app.get("/testing-njl", async (req: Request, res: Response) => {
-  try {
-    // connect;
-    let { connect } = await import_("puppeteer-real-browser");
-    const { page, browser } = await connect({
-      headless: "auto",
+// app.get("/testing-njl", async (req: Request, res: Response) => {
+//   try {
+//     // connect;
+//     let { connect } = await import_("puppeteer-real-browser");
+//     const { page, browser } = await connect({
+//       headless: "auto",
 
-      args: [],
-      customConfig: {},
-      skipTarget: [],
-      fingerprint: false,
-      turnstile: true,
-      connectOption: {
-        executablePath: "/usr/bin/google-chrome",
-      },
-    });
-    let resposneBody = {};
-    // Visit the URL
-    try {
-      page.on("response", async (response: any) => {
-        const url = response.url();
-        const status = response.status();
-        const headers = response.headers();
-        const type = response.request().resourceType();
-        // console.log(url, type);
-        // Only log API responses (JSON responses typically)
-        if (
-          (response.request().resourceType() === "xhr" ||
-            response.request().resourceType() === "fetch") &&
-          url ===
-            "https://api.notjustanalytics.com/profile/ig/analyze/flutteruidev"
-        ) {
-          console.log(`URL: ${url}`);
-          console.log(`Status: ${status}`);
-          console.log("Type:", type);
+//       args: [],
+//       customConfig: {},
+//       skipTarget: [],
+//       fingerprint: false,
+//       turnstile: true,
+//       connectOption: {
+//         executablePath: "/usr/bin/google-chrome",
+//       },
+//     });
+//     let resposneBody = {};
+//     // Visit the URL
+//     try {
+//       page.on("response", async (response: any) => {
+//         const url = response.url();
+//         const status = response.status();
+//         const headers = response.headers();
+//         const type = response.request().resourceType();
+//         // console.log(url, type);
+//         // Only log API responses (JSON responses typically)
+//         if (
+//           (response.request().resourceType() === "xhr" ||
+//             response.request().resourceType() === "fetch") &&
+//           url ===
+//             "https://api.notjustanalytics.com/profile/ig/analyze/flutteruidev"
+//         ) {
+//           console.log(`URL: ${url}`);
+//           console.log(`Status: ${status}`);
+//           console.log("Type:", type);
 
-          try {
-            resposneBody = await response.json(); // Attempt to parse the response as JSON
+//           try {
+//             resposneBody = await response.json(); // Attempt to parse the response as JSON
 
-            await delay(1000);
-            await page.close();
-          } catch (err) {
-            console.log("Response Body is not JSON.");
-          }
-        }
-      });
-      try {
-        await page.goto(
-          "https://app.notjustanalytics.com/analysis/flutteruidev",
-          {
-            waitUntil: ["domcontentloaded", "networkidle2"], // Wait until the network is idle
-            timeout: 60000, // Set a timeout
-          }
-        );
-      } catch (error) {
-        console.log("error in page navigation");
-      }
-      console.log("Page loaded successfully");
-    } catch (error) {
-      console.error("Failed to load the page:", error);
-    } finally {
-      let pages = (await browser.pages()) as Page[];
-      console.log("pages :", pages);
-      let pagesPromise = pages.map((p) => p.close());
-      await Promise.all(pagesPromise);
-      await browser.close();
-      res.send({ resposneBody, success: true });
-    }
-  } catch (error) {
-    console.log("error :", error);
-    res.send({ resposneBody: {}, success: false });
-  }
-});
+//             await delay(1000);
+//             await page.close();
+//           } catch (err) {
+//             console.log("Response Body is not JSON.");
+//           }
+//         }
+//       });
+//       try {
+//         await page.goto(
+//           "https://app.notjustanalytics.com/analysis/flutteruidev",
+//           {
+//             waitUntil: ["domcontentloaded", "networkidle2"], // Wait until the network is idle
+//             timeout: 60000, // Set a timeout
+//           }
+//         );
+//       } catch (error) {
+//         console.log("error in page navigation");
+//       }
+//       console.log("Page loaded successfully");
+//     } catch (error) {
+//       console.error("Failed to load the page:", error);
+//     } finally {
+//       let pages = (await browser.pages()) as Page[];
+//       console.log("pages :", pages);
+//       let pagesPromise = pages.map((p) => p.close());
+//       await Promise.all(pagesPromise);
+//       await browser.close();
+//       res.send({ resposneBody, success: true });
+//     }
+//   } catch (error) {
+//     console.log("error :", error);
+//     res.send({ resposneBody: {}, success: false });
+//   }
+// });
 
 app.get("/get-profile-details", async (req: Request, res: Response) => {
   let { username } = req.query;
