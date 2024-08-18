@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import delay from "./utils/delay";
 import { globalBrowser, puppeteerManager } from "./utils/browerSetup";
 import { addMockImage } from "./utils/imageBlocker";
-import fs from "fs";
+import fs, { stat } from "fs";
 import path from "path";
 import cors from "cors";
 import userAgents from "user-agents";
@@ -12,6 +12,8 @@ import import_ from "@brillout/import";
 
 import { json } from "stream/consumers";
 import { Page } from "puppeteer";
+import { sampleResponse } from "./constants";
+import axios from "axios";
 // @ts-ignore
 dotenv.config();
 
@@ -23,148 +25,122 @@ app.use(cors());
 app.get("/", (req: Request, res: Response) => {
   res.send("Express + TypeScript Server");
 });
-app.get("/insta-login", async (req: Request, res: Response) => {
-  const browser = await globalBrowser.initBrower();
 
-  let page = await browser!.newPage();
-  await page.goto("https://www.instagram.com/", {
-    waitUntil: ["load", "networkidle0"],
-  });
-  // Load cookies from the file
-  if (fs.existsSync(path.join(__dirname, "cookies.json"))) {
-    const cookies = JSON.parse(
-      fs.readFileSync(path.join(__dirname, "cookies.json"), "utf-8")
-    );
-    await page.setCookie(...cookies);
-
-    // Refresh the page or navigate to ensure cookies are applied
-    await page.goto("https://www.instagram.com/", {
-      waitUntil: "networkidle2",
-    });
-
-    // Verify successful login
-    try {
-      await page.waitForSelector('a[href="/accounts/edit/"]', {
-        timeout: 10000,
-      });
-      console.log("Logged in with saved cookies!");
-    } catch (error) {
-      console.log("Failed to login with cookies. Possible need to re-login.");
-    }
-  } else {
-    console.log("No cookies file found. Please login first to save cookies.");
-  }
-
-  // login using password
-  await page.type('input[name="username"]', process.env.INSTAGRAM_USER!, {
-    delay: 100,
-  });
-  await page.type('input[name="password"]', process.env.INSTAGRAM_PASSWORD!, {
-    delay: 100,
-  });
-  await delay(1000);
-  await page.click('button[type="submit"]');
-  await page.waitForNavigation({ waitUntil: "networkidle2" });
+app.get("/proxy-image/:url", async (req, res) => {
   try {
-    console.log("Login successful!");
-    await delay(10000);
-    console.log("saving the cookies");
+    const encodedUrl = req.params.url;
+    const imageUrl = decodeURIComponent(encodedUrl);
 
-    // await page.waitForSelector('a[href="/accouconsole.log("password :", );nts/edit/"]', { timeout: 10000 });
-
-    // Save cookies to a file or database
-    const cookies = await page.cookies();
-    console.log("cookie :", cookies);
-
-    fs.writeFileSync(
-      path.join(__dirname, "cookies2.json"),
-      JSON.stringify(cookies)
-    );
-    console.log("Cookies saved!");
+    const response = await axios.get(imageUrl, { responseType: "arraybuffer" });
+    res.set("Content-Type", "image/jpeg");
+    res.send(response.data);
   } catch (error) {
-    console.log("Login failed or additional steps required.", error);
+    res.status(500).send("Error fetching image");
   }
-
-  await page.click("#loginForm > div > div:nth-child(3) > button");
-
-  await page.close();
-  await browser!.close();
-  res.send("complete");
 });
 
-// app.get("/testing-njl", async (req: Request, res: Response) => {
-//   try {
-//     // connect;
-//     let { connect } = await import_("puppeteer-real-browser");
-//     const { page, browser } = await connect({
-//       headless: "auto",
+app.get("/profile-report", async (req: Request, res: Response) => {
+  const { username } = req.query;
+  console.log("username :", username);
 
-//       args: [],
-//       customConfig: {},
-//       skipTarget: [],
-//       fingerprint: false,
-//       turnstile: true,
-//       connectOption: {
-//         executablePath: "/usr/bin/google-chrome",
-//       },
-//     });
-//     let resposneBody = {};
-//     // Visit the URL
-//     try {
-//       page.on("response", async (response: any) => {
-//         const url = response.url();
-//         const status = response.status();
-//         const headers = response.headers();
-//         const type = response.request().resourceType();
-//         // console.log(url, type);
-//         // Only log API responses (JSON responses typically)
-//         if (
-//           (response.request().resourceType() === "xhr" ||
-//             response.request().resourceType() === "fetch") &&
-//           url ===
-//             "https://api.notjustanalytics.com/profile/ig/analyze/flutteruidev"
-//         ) {
-//           console.log(`URL: ${url}`);
-//           console.log(`Status: ${status}`);
-//           console.log("Type:", type);
+  await delay(2000);
+  res.send(sampleResponse);
+  return;
+  try {
+    // connect;
+    let { connect } = await import_("puppeteer-real-browser");
+    const { page, browser } = await connect({
+      headless: "auto",
 
-//           try {
-//             resposneBody = await response.json(); // Attempt to parse the response as JSON
+      args: [],
 
-//             await delay(1000);
-//             await page.close();
-//           } catch (err) {
-//             console.log("Response Body is not JSON.");
-//           }
-//         }
-//       });
-//       try {
-//         await page.goto(
-//           "https://app.notjustanalytics.com/analysis/flutteruidev",
-//           {
-//             waitUntil: ["domcontentloaded", "networkidle2"], // Wait until the network is idle
-//             timeout: 60000, // Set a timeout
-//           }
-//         );
-//       } catch (error) {
-//         console.log("error in page navigation");
-//       }
-//       console.log("Page loaded successfully");
-//     } catch (error) {
-//       console.error("Failed to load the page:", error);
-//     } finally {
-//       let pages = (await browser.pages()) as Page[];
-//       console.log("pages :", pages);
-//       let pagesPromise = pages.map((p) => p.close());
-//       await Promise.all(pagesPromise);
-//       await browser.close();
-//       res.send({ resposneBody, success: true });
-//     }
-//   } catch (error) {
-//     console.log("error :", error);
-//     res.send({ resposneBody: {}, success: false });
-//   }
-// });
+      customConfig: {},
+      skipTarget: [],
+      fingerprint: false,
+      turnstile: true,
+      connectOption: {
+        // executablePath: "/usr/bin/google-chrome",
+      },
+    });
+    let profileData: any = undefined;
+    let followingData: any = undefined;
+    // Visit the URL
+    try {
+      page.on("response", async (response: any) => {
+        const url = response.url() as string;
+        const status = response.status();
+        const headers = response.headers();
+        const type = response.request().resourceType();
+        // console.log(url, type);
+        // Only log API responses (JSON responses typically)
+        const followingDataAPI =
+          "https://api.notjustanalytics.com/profile/ig/history/";
+        const profileDetailAPI = `https://api.notjustanalytics.com/profile/ig/analyze/${username}`;
+        if (
+          response.request().resourceType() === "xhr" ||
+          response.request().resourceType() === "fetch"
+        ) {
+          console.log(`URL: ${url}`);
+          console.log(`Status: ${status}`);
+          console.log("Type:", type);
+
+          try {
+            if (url.includes(profileDetailAPI)) {
+              if (status === 404) {
+                throw "profile not found ";
+              }
+              let data = await response.json(); // Attempt to parse the response as JSON
+              profileData = data;
+            } else if (url.includes(followingDataAPI)) {
+              if (status === 404) {
+                throw "profile not found ";
+              }
+              let data = await response.json(); // Attempt to parse the response as JSON
+              followingData = data;
+            }
+
+            if (profileData !== undefined && followingData !== undefined) {
+              await delay(1000);
+              await page.close();
+            }
+          } catch (err) {
+            console.log("Response Body is not JSON.");
+            await delay(1000);
+            await page.close();
+          }
+        }
+      });
+      try {
+        await page.goto(
+          `https://app.notjustanalytics.com/analysis/${username}`,
+          {
+            waitUntil: ["domcontentloaded", "networkidle2"], // Wait until the network is idle
+            timeout: 60000, // Set a timeout
+          }
+        );
+      } catch (error) {
+        console.log("error in page navigation");
+      }
+      console.log("Page loaded successfully");
+    } catch (error) {
+      console.error("Failed to load the page:", error);
+    } finally {
+      let pages = (await browser.pages()) as Page[];
+      console.log("pages :", pages);
+      let pagesPromise = pages.map((p) => p.close());
+      await Promise.all(pagesPromise);
+      await browser.close();
+
+      if (followingData === undefined && profileData === undefined) {
+        throw "profile not found";
+      }
+      res.send({ followingData, profileData, success: true });
+    }
+  } catch (error) {
+    console.log("error :", error);
+    res.send({ followingData: {}, profileData: {}, success: false });
+  }
+});
 
 app.get("/get-profile-details", async (req: Request, res: Response) => {
   let { username } = req.query;
