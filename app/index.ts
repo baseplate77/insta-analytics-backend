@@ -3,10 +3,7 @@ import dotenv from "dotenv";
 import delay from "./utils/delay";
 import { globalBrowser, puppeteerManager } from "./utils/browerSetup";
 import { addMockImage } from "./utils/imageBlocker";
-import fs, { stat } from "fs";
-import path from "path";
 import cors from "cors";
-import userAgents from "user-agents";
 // @ts-ignore
 import import_ from "@brillout/import";
 
@@ -20,7 +17,7 @@ dotenv.config();
 const app: Express = express();
 const port = process.env.PORT || 3000;
 
-app.use(cors());
+// app.use(cors());
 
 app.get("/", (req: Request, res: Response) => {
   res.send("Express + TypeScript Server");
