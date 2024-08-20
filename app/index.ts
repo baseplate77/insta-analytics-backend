@@ -17,7 +17,7 @@ dotenv.config();
 const app: Express = express();
 const port = process.env.PORT || 3000;
 
-// app.use(cors());
+app.use(cors());
 
 app.get("/", (req: Request, res: Response) => {
   res.send("Express + TypeScript Server");
@@ -40,9 +40,9 @@ app.get("/profile-report", async (req: Request, res: Response) => {
   const { username } = req.query;
   console.log("username :", username);
 
-  await delay(2000);
-  res.send(sampleResponse);
-  return;
+  // // await delay(2000);
+  // res.send(sampleResponse);
+  // return;
   try {
     // connect;
     let { connect } = await import_("puppeteer-real-browser");
@@ -56,7 +56,7 @@ app.get("/profile-report", async (req: Request, res: Response) => {
       fingerprint: false,
       turnstile: true,
       connectOption: {
-        // executablePath: "/usr/bin/google-chrome",
+        executablePath: "/usr/bin/google-chrome",
       },
     });
     let profileData: any = undefined;
@@ -103,7 +103,11 @@ app.get("/profile-report", async (req: Request, res: Response) => {
           } catch (err) {
             console.log("Response Body is not JSON.");
             await delay(1000);
-            await page.close();
+            console.log("isclosed :", page.isClosed());
+
+            if (!page.isClosed()) {
+              await page.close();
+            }
           }
         }
       });
@@ -123,9 +127,9 @@ app.get("/profile-report", async (req: Request, res: Response) => {
       console.error("Failed to load the page:", error);
     } finally {
       let pages = (await browser.pages()) as Page[];
-      console.log("pages :", pages);
       let pagesPromise = pages.map((p) => p.close());
       await Promise.all(pagesPromise);
+      console.log("pages :", pages);
       await browser.close();
 
       if (followingData === undefined && profileData === undefined) {
