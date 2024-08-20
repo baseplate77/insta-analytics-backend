@@ -17,7 +17,7 @@ dotenv.config();
 const app: Express = express();
 const port = process.env.PORT || 3000;
 
-app.use(cors());
+// app.use(cors());
 
 app.get("/", (req: Request, res: Response) => {
   res.send("Express + TypeScript Server");
@@ -56,7 +56,7 @@ app.get("/profile-report", async (req: Request, res: Response) => {
       fingerprint: false,
       turnstile: true,
       connectOption: {
-        executablePath: "/usr/bin/google-chrome",
+        // executablePath: "/usr/bin/google-chrome",
       },
     });
     let profileData: any = undefined;
