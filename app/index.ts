@@ -1,14 +1,12 @@
 import express, { Express, Request, Response } from "express";
 import dotenv from "dotenv";
 import delay from "./utils/delay";
-import { globalBrowser, puppeteerManager } from "./utils/browerSetup";
+import { puppeteerManager } from "./utils/browerSetup";
 import { addMockImage } from "./utils/imageBlocker";
 import cors from "cors";
 // @ts-ignore
 import import_ from "@brillout/import";
 
-import { json } from "stream/consumers";
-import { Page } from "puppeteer";
 import { sampleResponse } from "./constants";
 import axios from "axios";
 // @ts-ignore
@@ -35,112 +33,118 @@ app.get("/proxy-image/:url", async (req, res) => {
     res.status(500).send("Error fetching image");
   }
 });
+const requestQueue: (() => Promise<void>)[] = [];
+let isProcessing = false;
+
+const processQueue = async () => {
+  if (isProcessing || requestQueue.length === 0) return;
+  isProcessing = true;
+  const nextRequest = requestQueue.shift();
+  if (nextRequest) await nextRequest();
+  isProcessing = false;
+  processQueue();
+};
 
 app.get("/profile-report", async (req: Request, res: Response) => {
-  const { username } = req.query;
-  console.log("username :", username);
+  requestQueue.push(async () => {
+    const { username } = req.query;
+    console.log("username :", username);
 
-  // // await delay(2000);
-  // res.send(sampleResponse);
-  // return;
-  try {
-    // connect;
-    let { connect } = await import_("puppeteer-real-browser");
-    const { page, browser } = await connect({
-      headless: "auto",
+    // res.send(sampleResponse);
+    // return;
 
-      args: [],
-
-      customConfig: {},
-      skipTarget: [],
-      fingerprint: false,
-      turnstile: true,
-      connectOption: {
-        // executablePath: "/usr/bin/google-chrome",
-      },
-    });
-    let profileData: any = undefined;
-    let followingData: any = undefined;
-    // Visit the URL
     try {
-      page.on("response", async (response: any) => {
-        const url = response.url() as string;
-        const status = response.status();
-        const headers = response.headers();
-        const type = response.request().resourceType();
-        // console.log(url, type);
-        // Only log API responses (JSON responses typically)
-        const followingDataAPI =
-          "https://api.notjustanalytics.com/profile/ig/history/";
-        const profileDetailAPI = `https://api.notjustanalytics.com/profile/ig/analyze/${username}`;
-        if (
-          response.request().resourceType() === "xhr" ||
-          response.request().resourceType() === "fetch"
-        ) {
-          console.log(`URL: ${url}`);
-          console.log(`Status: ${status}`);
-          console.log("Type:", type);
-
-          try {
-            if (url.includes(profileDetailAPI)) {
-              if (status === 404) {
-                throw "profile not found ";
-              }
-              let data = await response.json(); // Attempt to parse the response as JSON
-              profileData = data;
-            } else if (url.includes(followingDataAPI)) {
-              if (status === 404) {
-                throw "profile not found ";
-              }
-              let data = await response.json(); // Attempt to parse the response as JSON
-              followingData = data;
-            }
-
-            if (profileData !== undefined && followingData !== undefined) {
-              await delay(1000);
-              await page.close();
-            }
-          } catch (err) {
-            console.log("Response Body is not JSON.");
-            await delay(1000);
-            console.log("isclosed :", page.isClosed());
-
-            if (!page.isClosed()) {
-              await page.close();
-            }
-          }
-        }
+      let { connect } = await import_("puppeteer-real-browser");
+      const { page, browser } = await connect({
+        headless: "auto",
+        args: [],
+        customConfig: {},
+        skipTarget: [],
+        fingerprint: false,
+        turnstile: true,
+        connectOption: {
+          executablePath: "/usr/bin/google-chrome",
+        },
       });
+      let profileData: any = undefined;
+      let followingData: any = undefined;
+      // Visit the URL
       try {
-        await page.goto(
-          `https://app.notjustanalytics.com/analysis/${username}`,
-          {
-            waitUntil: ["domcontentloaded", "networkidle2"], // Wait until the network is idle
-            timeout: 60000, // Set a timeout
-          }
-        );
-      } catch (error) {
-        console.log("error in page navigation");
-      }
-      console.log("Page loaded successfully");
-    } catch (error) {
-      console.error("Failed to load the page:", error);
-    } finally {
-      let pages = (await browser.pages()) as Page[];
-      let pagesPromise = pages.map((p) => p.close());
-      await Promise.all(pagesPromise);
-      console.log("pages :", pages);
-      await browser.close();
+        page.on("response", async (response: any) => {
+          const url = response.url() as string;
+          const status = response.status();
+          const headers = response.headers();
+          const type = response.request().resourceType();
+          // console.log(url, type);
+          // Only log API responses (JSON responses typically)
+          const followingDataAPI =
+            "https://api.notjustanalytics.com/profile/ig/history/";
+          const profileDetailAPI = `https://api.notjustanalytics.com/profile/ig/analyze/${username}`;
+          if (
+            response.request().resourceType() === "xhr" ||
+            response.request().resourceType() === "fetch"
+          ) {
+            console.log(`URL: ${url}`);
+            console.log(`Status: ${status}`);
+            console.log("Type:", type);
 
-      if (followingData === undefined && profileData === undefined) {
-        throw "profile not found";
+            try {
+              if (url.includes(profileDetailAPI)) {
+                if (status === 404) {
+                  throw "profile not found ";
+                }
+                let data = await response.json(); // Attempt to parse the response as JSON
+                profileData = data;
+              } else if (url.includes(followingDataAPI)) {
+                if (status === 404) {
+                  throw "profile not found ";
+                }
+                let data = await response.json(); // Attempt to parse the response as JSON
+                followingData = data;
+              }
+
+              if (profileData !== undefined && followingData !== undefined) {
+                await delay(1000);
+                await page.close();
+              }
+            } catch (err) {
+              console.log("Response Body is not JSON.");
+              await delay(1000);
+              console.log("isclosed :", page.isClosed());
+
+              if (!page.isClosed()) {
+                await page.close();
+              }
+            }
+          }
+        });
+        try {
+          await page.goto(
+            `https://app.notjustanalytics.com/analysis/${username}`,
+            {
+              waitUntil: ["domcontentloaded", "networkidle2"], // Wait until the network is idle
+              timeout: 60000, // Set a timeout
+            }
+          );
+        } catch (error) {
+          console.log("error in page navigation");
+        }
+        console.log("Page loaded successfully");
+      } catch (error) {
+        console.error("Failed to load the page:", error);
+      } finally {
+        if (followingData === undefined && profileData === undefined) {
+          throw "profile not found";
+        }
+        res.send({ followingData, profileData, success: true });
       }
-      res.send({ followingData, profileData, success: true });
+    } catch (error) {
+      console.log("error :", error);
+      res.send({ followingData: {}, profileData: {}, success: false });
     }
-  } catch (error) {
-    console.log("error :", error);
-    res.send({ followingData: {}, profileData: {}, success: false });
-  }
+  });
+
+  processQueue();
 });
 
 app.get("/get-profile-details", async (req: Request, res: Response) => {
@@ -252,6 +256,9 @@ app.get("/get-profile-details", async (req: Request, res: Response) => {
   }
 });
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`[server]: Server is running at http://localhost:${port}`);
 });
+
+// Set server timeout to 5 minutes (300000 milliseconds)
+server.timeout = 300000;
