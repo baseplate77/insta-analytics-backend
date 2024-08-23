@@ -59,6 +59,8 @@ export const getProfileData = async (userId: string, cb: any) => {
     console.error("Failed to load the page:", error);
   } finally {
     if (profileData === undefined) {
+      console.log("profile data not define");
+
       throw "profile not found";
     }
     await browser.close();
