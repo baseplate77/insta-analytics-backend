@@ -7,8 +7,26 @@ import { addExtra } from "puppeteer-extra";
 import Stealth from "puppeteer-extra-plugin-stealth";
 import Recaptcha from "puppeteer-extra-plugin-recaptcha";
 import { proxyList } from "../constants";
+import import_ from "@brillout/import";
 
 // let browser: Browser = undefined;
+
+export const getReaLBrowser = async () => {
+  let { connect } = await import_("puppeteer-real-browser");
+  const { page, browser } = await connect({
+    headless: "auto",
+    args: [],
+    customConfig: {},
+    skipTarget: [],
+    fingerprint: false,
+    turnstile: true,
+    connectOption: {
+      executablePath: "/usr/bin/google-chrome",
+    },
+  });
+
+  return { page, browser };
+};
 
 class PuppeteerManager {
   browser?: Browser | null = null;

@@ -10,7 +10,8 @@
     "puppeteer-extra-plugin-recaptcha": "^3.6.8",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
     "puppeteer-real-browser": "https://github.com/zfcsoftware/puppeteer-real-browser/tree/main",
-    "user-agents": "^1.1.295"
+    "user-agents": "^1.1.295",
+    "xlsx": "^0.18.5"
   },
   "scripts": {
     "build": "npx tsc",

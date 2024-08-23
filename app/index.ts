@@ -1,21 +1,25 @@
 import express, { Express, Request, Response } from "express";
 import dotenv from "dotenv";
 import delay from "./utils/delay";
-import { puppeteerManager } from "./utils/browerSetup";
+import { getReaLBrowser, puppeteerManager } from "./utils/browerSetup";
 import { addMockImage } from "./utils/imageBlocker";
 import cors from "cors";
+import fs from "fs";
 // @ts-ignore
 import import_ from "@brillout/import";
+import xlsx from "xlsx";
 
-import { sampleResponse } from "./constants";
 import axios from "axios";
+import { getProfileData } from "./utils/get_profile_data";
+import path from "path";
 // @ts-ignore
 dotenv.config();
 
 const app: Express = express();
 const port = process.env.PORT || 3000;
 
-// app.use(cors());
+app.use(cors());
+app.use(express.json());
 
 app.get("/", (req: Request, res: Response) => {
   res.send("Express + TypeScript Server");
@@ -45,6 +49,100 @@ const processQueue = async () => {
   processQueue();
 };
 
+app.post(
+  "/generate-follower-count-report",
+  async (req: Request, res: Response) => {
+    const { docUrl } = req.body;
+
+    try {
+      // Fetch the XLSX file from the URL
+      const response = await axios.get(docUrl, { responseType: "arraybuffer" });
+      const data = new Uint8Array(response.data);
+      const workbook = xlsx.read(data, { type: "array" });
+
+      // Assuming the first sheet is the one you want to read
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+
+      // Convert sheet to JSON
+      const rows: any[] = xlsx.utils.sheet_to_json(sheet, { header: 1 });
+
+      let userIdRowIndex = rows[0].findIndex(
+        (d: string) => d.toLowerCase() === "user id"
+      );
+      // Print columns and rows
+
+      console.log("userIdRowIndex", userIdRowIndex);
+
+      let headerRow = rows.shift();
+
+      let userID = rows.map((d: string[]) => d[userIdRowIndex]);
+      userID = userID.slice(0, 2);
+      // rows.forEach((row, rowIndex) => {
+      //   console.log(`Row ${rowIndex}:`, row);
+      // });
+
+      // let promises = userID.map(async (userId) => {
+      //   await getProfileData(userId);
+      // });
+
+      let followerData: any[] = [];
+      let batchSize = 2;
+      for (let i = 0; i < userID.length; i += batchSize) {
+        console.log("iii :", i);
+        let tempUserId = [...userID];
+
+        let userIds = tempUserId.splice(i, i + batchSize);
+        let promises = userIds.map(async (userId) => {
+          console.log("userIds length :", userID.length, tempUserId.length);
+          return await getProfileData(userId, (data: any) => {
+            followerData.push(data.followers);
+          });
+        });
+
+        await Promise.all(promises);
+        // const batch = promises.slice(i, i + batchSize); // Get a batch of promises
+        // const batchResults = await Promise.all(batch.map((fn: any) => fn())); // Wait for the batch to resolve
+        // results.push(...batchResults); // Store the results
+      }
+
+      // const workbook = xlsx.utils.book_new();
+      const workbook2 = xlsx.utils.book_new();
+
+      const xlsxData = [[...headerRow, "Follower Count", "End Goal"]];
+
+      for (let i = 0; i < rows.length; i++) {
+        let row = rows[i];
+        xlsxData.push([...row, followerData[i], 3]);
+      }
+
+      const worksheet = xlsx.utils.aoa_to_sheet(xlsxData);
+      xlsx.utils.book_append_sheet(workbook2, worksheet, "Report");
+      const filePath = path.join(
+        __dirname,
+        `Report-${new Date().toLocaleDateString()}.xlsx`
+      );
+      fs.closeSync(fs.openSync(filePath, "w"));
+
+      xlsx.writeFile(workbook, filePath);
+
+      // await processInBatches(promises, 2);
+      // while (promises.length > 0) {
+      //   // Take the first two promises from the list
+      //   const pair = promises.splice(0, 2);
+
+      //   // Process the pair in parallel
+      //   const pairResults = await Promise.all(pair.map((p: any) => p()));
+      // }
+
+      res.send({ success: true, followerData, userID });
+    } catch (error) {
+      console.error("Error reading XLSX file:", error);
+      res.status(500).send("Error reading XLSX file");
+    }
+  }
+);
+
 app.get("/profile-report", async (req: Request, res: Response) => {
   requestQueue.push(async () => {
     const { username } = req.query;
@@ -54,18 +152,19 @@ app.get("/profile-report", async (req: Request, res: Response) => {
     // return;
 
     try {
-      let { connect } = await import_("puppeteer-real-browser");
-      const { page, browser } = await connect({
-        headless: "auto",
-        args: [],
-        customConfig: {},
-        skipTarget: [],
-        fingerprint: false,
-        turnstile: true,
-        connectOption: {
-          executablePath: "/usr/bin/google-chrome",
-        },
-      });
+      const { page } = await getReaLBrowser();
+      // let { connect } = await import_("puppeteer-real-browser");
+      // const { page, browser } = await connect({
+      //   headless: "auto",
+      //   args: [],
+      //   customConfig: {},
+      //   skipTarget: [],
+      //   fingerprint: false,
+      //   turnstile: true,
+      //   connectOption: {
+      //     executablePath: "/usr/bin/google-chrome",
+      //   },
+      // });
       let profileData: any = undefined;
       let followingData: any = undefined;
       // Visit the URL
