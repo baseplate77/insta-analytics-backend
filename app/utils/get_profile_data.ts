@@ -19,12 +19,11 @@ export const getProfileData = async (userId: string, cb: any) => {
         response.request().resourceType() === "xhr" ||
         response.request().resourceType() === "fetch"
       ) {
-        console.log(`URL: ${url}`);
-        console.log(`Status: ${status}`);
-        console.log("Type:", type);
-
         try {
           if (url.includes(profileDetailAPI)) {
+            console.log(`URL: ${url}`);
+            console.log(`Status: ${status}`);
+            console.log("Type:", type);
             if (status === 404) {
               throw "profile not found ";
             }
