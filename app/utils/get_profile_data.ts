@@ -53,20 +53,20 @@ export const getProfileData = async (userId: string, cb: any) => {
       });
     } catch (error) {
       console.log("error in page navigation");
+    } finally {
+      if (profileData === undefined) {
+        console.log("profile data not define");
+
+        throw "profile not found";
+      }
+      await browser.close();
+      cb(profileData);
+      console.log(userId, profileData.followers);
+      await delay(1000);
     }
     console.log("Page loaded successfully");
   } catch (error) {
     console.error("Failed to load the page:", error);
-  } finally {
-    if (profileData === undefined) {
-      console.log("profile data not define");
-
-      throw "profile not found";
-    }
-    await browser.close();
-    cb(profileData);
-    console.log(userId, profileData.followers);
-    await delay(1000);
   }
 
   return profileData;
