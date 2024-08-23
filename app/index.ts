@@ -77,7 +77,7 @@ app.post(
       let headerRow = rows.shift();
 
       let userID = rows.map((d: string[]) => d[userIdRowIndex]);
-      userID = userID.slice(0, 2);
+      userID = userID.slice(0, 10);
       // rows.forEach((row, rowIndex) => {
       //   console.log(`Row ${rowIndex}:`, row);
       // });
@@ -87,7 +87,7 @@ app.post(
       // });
 
       let followerData: any[] = [];
-      let batchSize = 2;
+      let batchSize = 10;
       for (let i = 0; i < userID.length; i += batchSize) {
         console.log("iii :", i);
         let tempUserId = [...userID];
@@ -107,24 +107,25 @@ app.post(
       }
 
       // const workbook = xlsx.utils.book_new();
-      const workbook2 = xlsx.utils.book_new();
 
-      const xlsxData = [[...headerRow, "Follower Count", "End Goal"]];
+      // const workbook2 = xlsx.utils.book_new();
 
-      for (let i = 0; i < rows.length; i++) {
-        let row = rows[i];
-        xlsxData.push([...row, followerData[i], 3]);
-      }
+      // const xlsxData = [[...headerRow, "Follower Count", "End Goal"]];
 
-      const worksheet = xlsx.utils.aoa_to_sheet(xlsxData);
-      xlsx.utils.book_append_sheet(workbook2, worksheet, "Report");
-      const filePath = path.join(
-        __dirname,
-        `Report-${new Date().toLocaleDateString()}.xlsx`
-      );
-      fs.closeSync(fs.openSync(filePath, "w"));
+      // for (let i = 0; i < rows.length; i++) {
+      //   let row = rows[i];
+      //   xlsxData.push([...row, followerData[i], 3]);
+      // }
 
-      xlsx.writeFile(workbook, filePath);
+      // const worksheet = xlsx.utils.aoa_to_sheet(xlsxData);
+      // xlsx.utils.book_append_sheet(workbook2, worksheet, "Report");
+      // const filePath = path.join(
+      //   __dirname,
+      //   `Report-${new Date().toLocaleDateString()}.xlsx`
+      // );
+      // fs.closeSync(fs.openSync(filePath, "w"));
+
+      // xlsx.writeFile(workbook, filePath);
 
       // await processInBatches(promises, 2);
       // while (promises.length > 0) {
