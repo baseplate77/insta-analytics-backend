@@ -73,7 +73,7 @@ app.post(
 
       const headerRow = rows.shift();
       let userID = rows.map((d: string[]) => d[userIdRowIndex]);
-      userID = userID.slice(0, 20);
+      // userID = userID.slice(0, 20);
       let followerData: any[] = new Array(userID.length);
       let batchSize = 5;
       console.log("user :", userID);
