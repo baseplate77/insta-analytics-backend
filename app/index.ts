@@ -15,6 +15,7 @@ import { getProfileData } from "./utils/get_profile_data";
 import path from "path";
 import touch from "touch";
 import { amdin } from "./utils/firebase";
+import puppeteer from "puppeteer";
 // @ts-ignore
 dotenv.config();
 
@@ -52,9 +53,101 @@ const processQueue = async () => {
   isProcessing = false;
   processQueue();
 };
-
 app.post(
   "/generate-follower-count-report",
+  async (req: Request, res: Response) => {
+    const { docUrl } = req.body;
+    try {
+      const response = await axios.get(docUrl, { responseType: "arraybuffer" });
+      const data = new Uint8Array(response.data);
+      const workbook = xlsx.read(data, { type: "array" });
+
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const rows: any[] = xlsx.utils.sheet_to_json(sheet, { header: 1 });
+
+      const userIdRowIndex = rows[0].findIndex(
+        (d: string) => d.toLowerCase() === "user id"
+      );
+      console.log("userIdRowIndex", userIdRowIndex);
+
+      const headerRow = rows.shift();
+      let userID = rows.map((d: string[]) => d[userIdRowIndex]).slice(0, 4);
+      userID = userID.slice(0, 4);
+      let followerData: any[] = [];
+      let batchSize = 2;
+      for (let i = 0; i < userID.length; i += batchSize) {
+        let tempUserId = [...userID];
+
+        let userIds = tempUserId.splice(i, i + batchSize);
+
+        let promises = userIds.map(async (username) => {
+          const { page, browser } = await getReaLBrowser();
+          let profileData: any = undefined;
+
+          page.on("response", async (response: any) => {
+            const url = response.url() as string;
+            const status = response.status();
+            const profileDetailAPI = `https://api.notjustanalytics.com/profile/ig/analyze/${username}`;
+
+            if (["xhr", "fetch"].includes(response.request().resourceType())) {
+              console.log(`URL: ${url}`);
+              console.log(`Status: ${status}`);
+
+              if (url.includes(profileDetailAPI)) {
+                if (status === 404) throw "profile not found";
+
+                try {
+                  const data = await response.json();
+                  profileData = data;
+                } catch (err) {
+                  console.log("Response Body is not JSON.");
+                }
+
+                if (profileData !== undefined) {
+                  await delay(1000);
+                  await page.close();
+                }
+              }
+            }
+          });
+
+          try {
+            await page.goto(
+              `https://app.notjustanalytics.com/analysis/${username}`,
+              {
+                waitUntil: ["domcontentloaded", "networkidle2"],
+                timeout: 60000,
+              }
+            );
+            console.log("Page loaded successfully");
+          } catch (error) {
+            console.log("error in page navigation");
+          } finally {
+            if (!page.isClosed()) {
+              await page.close();
+            }
+            await browser.close();
+          }
+
+          if (profileData === undefined) throw "profile not found";
+          followerData.push(profileData.followers);
+        });
+
+        await Promise.all([...promises]);
+      }
+      console.log("completed :", followerData);
+
+      res.send({ followerData, success: true });
+    } catch (error) {
+      console.error("Error reading XLSX file:", error);
+      res.status(500).send("Error reading XLSX file");
+    }
+  }
+);
+
+app.post(
+  "/generate-follower-count-report2",
   async (req: Request, res: Response) => {
     const { docUrl } = req.body;
 
@@ -81,7 +174,7 @@ app.post(
       let headerRow = rows.shift();
 
       let userID = rows.map((d: string[]) => d[userIdRowIndex]);
-      userID = userID.slice(0, 40);
+      userID = userID.slice(0, 4);
       // rows.forEach((row, rowIndex) => {
       //   console.log(`Row ${rowIndex}:`, row);
       // });
@@ -91,7 +184,7 @@ app.post(
       // });
 
       let followerData: any[] = [];
-      let batchSize = 4;
+      let batchSize = 2;
       for (let i = 0; i < userID.length; i += batchSize) {
         let tempUserId = [...userID];
 
@@ -104,9 +197,10 @@ app.post(
           const { page, browser } = await getReaLBrowser();
 
           const profileDetailAPI = `https://api.notjustanalytics.com/profile/ig/analyze/${userId}`;
+          let currentIndex = index + i * batchSize;
+          console.log("currentIndex ", currentIndex);
 
           let profileData: any = undefined;
-          let followingData: any = undefined;
           // Visit the URL
           try {
             page.on("response", async (response: any) => {
@@ -116,9 +210,7 @@ app.post(
               const type = response.request().resourceType();
               // console.log(url, type);
               // Only log API responses (JSON responses typically)
-              const followingDataAPI =
-                "https://api.notjustanalytics.com/profile/ig/history/";
-              const profileDetailAPI = `https://api.notjustanalytics.com/profile/ig/analyze/${userId}`;
+
               if (
                 response.request().resourceType() === "xhr" ||
                 response.request().resourceType() === "fetch"
@@ -132,11 +224,12 @@ app.post(
                     console.log(`Status: ${status}`);
                     console.log("Type:", type);
                     let data = await response.json(); // Attempt to parse the response as JSON
+                    followerData.push(data.followers);
                     profileData = data;
                   }
                   console.log("followerData :", profileData.followers);
 
-                  if (profileData !== undefined) {
+                  if (followerData[currentIndex] !== undefined) {
                     await delay(1000);
                     await page.close();
                   }
@@ -175,23 +268,23 @@ app.post(
           } catch (error) {
             console.error("Failed to load the page:", error);
           } finally {
-            if (profileData === undefined) {
-              console.log("page close with error profileDate :", profileData);
-
-              throw "profile not found";
-            }
-            // cb(profileData);
-            // console.log(userId, profileData);
-
             if (!page.isClosed()) {
               await page.close();
             }
             await browser.close();
+            if (followerData[currentIndex] === undefined) {
+              console.log("page close with error profileDate :", followerData);
+
+              // throw "profile not found";
+            }
+            // cb(profileData);
+            // console.log(userId, profileData);
+
             // res.send({ followingData, profileData, success: true });
           }
 
           // await getProfileData(userIds[0], (data: any) => {
-          followerData.push(data == undefined ? 0 : profileData.followers);
+          // followerData.push(data == undefined ? 0 : profileData.followers);
         });
 
         // });
