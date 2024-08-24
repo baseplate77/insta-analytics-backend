@@ -155,7 +155,7 @@ app.post(
               await page.goto(
                 `https://app.notjustanalytics.com/analysis/${userId}`,
                 {
-                  waitUntil: ["domcontentloaded", "networkidle2"], // Wait until the network is idle
+                  waitUntil: ["networkidle0"], // Wait until the network is idle
                   timeout: 60000, // Set a timeout
                 }
               );
