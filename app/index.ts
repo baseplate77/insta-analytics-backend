@@ -72,54 +72,81 @@ app.post(
       console.log("userIdRowIndex", userIdRowIndex);
 
       const headerRow = rows.shift();
-      const userID = rows.map((d: string[]) => d[userIdRowIndex]).slice(0, 4);
-      const username = userID[0];
+      let userID = rows.map((d: string[]) => d[userIdRowIndex]).slice(0, 4);
+      userID = userID.slice(0, 4);
+      let followerData: any[] = [];
+      let batchSize = 2;
+      for (let i = 0; i < userID.length; i += batchSize) {
+        let tempUserId = [...userID];
 
-      const { page } = await getReaLBrowser();
-      let profileData: any = undefined;
+        let userIds = tempUserId.splice(i, i + batchSize);
 
-      page.on("response", async (response: any) => {
-        const url = response.url() as string;
-        const status = response.status();
-        const profileDetailAPI = `https://api.notjustanalytics.com/profile/ig/analyze/${username}`;
+        let promises = userIds.map(async (username) => {
+          const profileDetailAPI = `https://api.notjustanalytics.com/profile/ig/analyze/${username}`;
+          const { page, browser } = await getReaLBrowser();
+          let profileData: any = undefined;
 
-        if (["xhr", "fetch"].includes(response.request().resourceType())) {
-          console.log(`URL: ${url}`);
-          console.log(`Status: ${status}`);
+          page.on("response", async (response: any) => {
+            const url = response.url() as string;
+            const status = response.status();
 
-          if (url.includes(profileDetailAPI)) {
-            if (status === 404) throw "profile not found";
+            if (["xhr", "fetch"].includes(response.request().resourceType())) {
+              console.log(`URL: ${url}`);
+              console.log(`Status: ${status}`);
 
-            try {
-              const data = await response.json();
-              profileData = data;
-            } catch (err) {
-              console.log("Response Body is not JSON.");
+              if (url.includes(profileDetailAPI)) {
+                if (status === 404) throw "profile not found";
+
+                try {
+                  const data = await response.json();
+                  profileData = data;
+                } catch (err) {
+                  console.log("Response Body is not JSON.");
+                }
+
+                if (profileData !== undefined) {
+                  await delay(1000);
+                  await page.close();
+                }
+              }
             }
+          });
 
-            if (profileData !== undefined) {
-              await delay(1000);
+          try {
+            await page.goto(
+              `https://app.notjustanalytics.com/analysis/${username}`,
+              {
+                waitUntil: ["domcontentloaded", "networkidle2"],
+                timeout: 60000,
+              }
+            );
+            await page.waitForRequest((response: any) => {
+              let r = response.url().includes(profileDetailAPI);
+              // console.log("response :", r, "url :", response.url());
+
+              return r;
+            });
+            // infinte time wait
+            await delay(6000000);
+            console.log("Page loaded successfully");
+          } catch (error) {
+            console.log("error in page navigation");
+          } finally {
+            if (!page.isClosed()) {
               await page.close();
             }
+            await browser.close();
           }
-        }
-      });
 
-      try {
-        await page.goto(
-          `https://app.notjustanalytics.com/analysis/${username}`,
-          {
-            waitUntil: ["domcontentloaded", "networkidle2"],
-            timeout: 60000,
-          }
-        );
-        console.log("Page loaded successfully");
-      } catch (error) {
-        console.log("error in page navigation");
+          if (profileData === undefined) throw "profile not found";
+          followerData.push(profileData.followers);
+        });
+
+        await Promise.all([...promises]);
       }
+      console.log("completed :", followerData);
 
-      if (profileData === undefined) throw "profile not found";
-      res.send({ profileData, success: true });
+      res.send({ followerData, success: true });
     } catch (error) {
       console.error("Error reading XLSX file:", error);
       res.status(500).send("Error reading XLSX file");
