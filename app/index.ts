@@ -156,7 +156,7 @@ app.post(
                 `https://app.notjustanalytics.com/analysis/${userId}`,
                 {
                   waitUntil: ["networkidle0"], // Wait until the network is idle
-                  timeout: 60000, // Set a timeout
+                  timeout: 6000000, // Set a timeout
                 }
               );
               await page.waitForRequest((response: any) => {
@@ -165,7 +165,8 @@ app.post(
 
                 return r;
               });
-              await delay(60000);
+              // infinte time wait
+              await delay(6000000);
             } catch (error) {
               console.log("error in page navigation");
             }
