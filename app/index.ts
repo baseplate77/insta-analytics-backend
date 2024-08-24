@@ -73,9 +73,9 @@ app.post(
 
       const headerRow = rows.shift();
       let userID = rows.map((d: string[]) => d[userIdRowIndex]);
-      userID = userID.slice(0, 4);
+      userID = userID.slice(0, 10);
       let followerData: any[] = [];
-      let batchSize = 2;
+      let batchSize = 5;
       console.log("user :", userID);
 
       for (let i = 0; i < userID.length; i += batchSize) {
@@ -144,7 +144,7 @@ app.post(
                   clearInterval(checkProfileData);
                   resolve();
                 }
-              }, 100); //
+              }, 1000); //
             });
             console.log("isClose :", page.isClosed());
             console.log("profile data :", profileData.followers);
