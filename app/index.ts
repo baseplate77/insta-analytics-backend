@@ -81,7 +81,7 @@ app.post(
       let headerRow = rows.shift();
 
       let userID = rows.map((d: string[]) => d[userIdRowIndex]);
-      userID = userID.slice(0, 20);
+      userID = userID.slice(0, 10);
       // rows.forEach((row, rowIndex) => {
       //   console.log(`Row ${rowIndex}:`, row);
       // });
@@ -91,7 +91,7 @@ app.post(
       // });
 
       let followerData: any[] = [];
-      let batchSize = 10;
+      let batchSize = 5;
       for (let i = 0; i < userID.length; i += batchSize) {
         console.log("iii :", i);
         let tempUserId = [...userID];
