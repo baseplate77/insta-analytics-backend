@@ -81,7 +81,7 @@ app.post(
       let headerRow = rows.shift();
 
       let userID = rows.map((d: string[]) => d[userIdRowIndex]);
-      userID = userID.slice(0, 3);
+      userID = userID.slice(0, 4);
       // rows.forEach((row, rowIndex) => {
       //   console.log(`Row ${rowIndex}:`, row);
       // });
@@ -91,106 +91,117 @@ app.post(
       // });
 
       let followerData: any[] = [];
-      let batchSize = 1;
+      let batchSize = 2;
       for (let i = 0; i < userID.length; i += batchSize) {
-        console.log("iii :", i);
         let tempUserId = [...userID];
 
         let userIds = tempUserId.splice(i, i + batchSize);
+        console.log("iii :", i, userIds);
         // let promises = userIds.map(async (userId) => {
         //   console.log("userIds length :", userID.length, tempUserId.length);
-        let userId = userIds[0];
-        const { page, browser } = await getReaLBrowser();
+        let promises = userIds.map(async (userId, index) => {
+          await delay(500 * index);
+          const { page, browser } = await getReaLBrowser();
 
-        const profileDetailAPI = `https://api.notjustanalytics.com/profile/ig/analyze/${userId}`;
+          const profileDetailAPI = `https://api.notjustanalytics.com/profile/ig/analyze/${userId}`;
 
-        let profileData: any = undefined;
-        let followingData: any = undefined;
-        // Visit the URL
-        try {
-          page.on("response", async (response: any) => {
-            const url = response.url() as string;
-            const status = response.status();
-            const headers = response.headers();
-            const type = response.request().resourceType();
-            // console.log(url, type);
-            // Only log API responses (JSON responses typically)
-            const followingDataAPI =
-              "https://api.notjustanalytics.com/profile/ig/history/";
-            const profileDetailAPI = `https://api.notjustanalytics.com/profile/ig/analyze/${userId}`;
-            if (
-              response.request().resourceType() === "xhr" ||
-              response.request().resourceType() === "fetch"
-            ) {
-              try {
-                if (url.includes(profileDetailAPI)) {
-                  if (status === 404) {
-                    throw "profile not found ";
-                  }
-                  console.log(`URL: ${url}`);
-                  console.log(`Status: ${status}`);
-                  console.log("Type:", type);
-                  let data = await response.json(); // Attempt to parse the response as JSON
-                  profileData = data;
-                } else if (url.includes(followingDataAPI)) {
-                  if (status === 404) {
-                    throw "profile not found ";
-                  }
-                  let data = await response.json(); // Attempt to parse the response as JSON
-                  followingData = data;
-                }
-
-                if (profileData !== undefined && followingData !== undefined) {
-                  await delay(1000);
-                  await page.close();
-                }
-              } catch (err) {
-                console.log("Response Body is not JSON.");
-                await delay(1000);
-                console.log("isclosed :", page.isClosed());
-
-                if (!page.isClosed()) {
-                  await page.close();
-                }
-              }
-            }
-          });
+          let profileData: any = undefined;
+          let followingData: any = undefined;
+          // Visit the URL
           try {
-            await page.goto(
-              `https://app.notjustanalytics.com/analysis/${userId}`,
-              {
-                waitUntil: ["domcontentloaded", "networkidle2"], // Wait until the network is idle
-                timeout: 60000, // Set a timeout
+            page.on("response", async (response: any) => {
+              const url = response.url() as string;
+              const status = response.status();
+              const headers = response.headers();
+              const type = response.request().resourceType();
+              // console.log(url, type);
+              // Only log API responses (JSON responses typically)
+              const followingDataAPI =
+                "https://api.notjustanalytics.com/profile/ig/history/";
+              const profileDetailAPI = `https://api.notjustanalytics.com/profile/ig/analyze/${userId}`;
+              if (
+                response.request().resourceType() === "xhr" ||
+                response.request().resourceType() === "fetch"
+              ) {
+                try {
+                  if (url.includes(profileDetailAPI)) {
+                    if (status === 404) {
+                      throw "profile not found ";
+                    }
+                    console.log(`URL: ${url}`);
+                    console.log(`Status: ${status}`);
+                    console.log("Type:", type);
+                    let data = await response.json(); // Attempt to parse the response as JSON
+                    profileData = data;
+                  } else if (url.includes(followingDataAPI)) {
+                    if (status === 404) {
+                      throw "profile not found ";
+                    }
+                    let data = await response.json(); // Attempt to parse the response as JSON
+                    followingData = data;
+                  }
+
+                  if (
+                    profileData !== undefined &&
+                    followingData !== undefined
+                  ) {
+                    await delay(1000);
+                    await page.close();
+                  }
+                } catch (err) {
+                  console.log("Response Body is not JSON.");
+                  await delay(1000);
+                  // console.log("isclosed :", page.isClosed());
+
+                  if (!page.isClosed()) {
+                    await page.close();
+                  }
+                }
               }
-            );
-            await page.waitForRequest((response: any) => {
-              let r = response.url().includes(profileDetailAPI);
-              // console.log("response :", r, "url :", response.url());
-
-              return r;
             });
+            try {
+              await delay(500 * index);
+              await page.goto(
+                `https://app.notjustanalytics.com/analysis/${userId}`,
+                {
+                  waitUntil: ["domcontentloaded", "networkidle2"], // Wait until the network is idle
+                  timeout: 60000, // Set a timeout
+                }
+              );
+              // await page.waitForRequest((response: any) => {
+              //   let r = response.url().includes(profileDetailAPI);
+              //   // console.log("response :", r, "url :", response.url());
+
+              //   return r;
+              // });
+            } catch (error) {
+              console.log("error in page navigation");
+            }
+            console.log("Page loaded successfully");
           } catch (error) {
-            console.log("error in page navigation");
-          }
-          console.log("Page loaded successfully");
-        } catch (error) {
-          console.error("Failed to load the page:", error);
-        } finally {
-          if (followingData === undefined && profileData === undefined) {
-            throw "profile not found";
-          }
-          // cb(profileData);
-          console.log(userId, profileData);
-          // res.send({ followingData, profileData, success: true });
-        }
+            console.error("Failed to load the page:", error);
+          } finally {
+            if (followingData === undefined && profileData === undefined) {
+              throw "profile not found";
+            }
+            // cb(profileData);
+            // console.log(userId, profileData);
 
-        // await getProfileData(userIds[0], (data: any) => {
-        followerData.push(data == undefined ? 0 : profileData.followers);
+            if (!page.isClosed()) {
+              await page.close();
+            }
+            await browser.close();
+            // res.send({ followingData, profileData, success: true });
+          }
+
+          // await getProfileData(userIds[0], (data: any) => {
+          followerData.push(data == undefined ? 0 : profileData.followers);
+        });
 
         // });
         // });
 
-        // await Promise.all(promises);
+        await Promise.all(promises);
         // const batch = promises.slice(i, i + batchSize); // Get a batch of promises
         // const batchResults = await Promise.all(batch.map((fn: any) => fn())); // Wait for the batch to resolve
         // results.push(...batchResults); // Store the results
