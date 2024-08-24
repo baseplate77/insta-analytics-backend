@@ -97,14 +97,14 @@ app.post(
         let tempUserId = [...userID];
 
         let userIds = tempUserId.splice(i, i + batchSize);
-        let promises = userIds.map(async (userId) => {
-          console.log("userIds length :", userID.length, tempUserId.length);
-          return await getProfileData(userId, (data: any) => {
-            followerData.push(data == undefined ? 0 : data.followers);
-          });
+        // let promises = userIds.map(async (userId) => {
+        //   console.log("userIds length :", userID.length, tempUserId.length);
+        await getProfileData(userIds[0], (data: any) => {
+          followerData.push(data == undefined ? 0 : data.followers);
         });
+        // });
 
-        await Promise.all(promises);
+        // await Promise.all(promises);
         // const batch = promises.slice(i, i + batchSize); // Get a batch of promises
         // const batchResults = await Promise.all(batch.map((fn: any) => fn())); // Wait for the batch to resolve
         // results.push(...batchResults); // Store the results
