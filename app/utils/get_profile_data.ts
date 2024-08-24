@@ -43,8 +43,8 @@ export const getProfileData = async (userId: string, cb: any) => {
 
     try {
       await page.goto(`https://app.notjustanalytics.com/analysis/${userId}`, {
-        waitUntil: ["load"],
-        timeout: 60000,
+        waitUntil: ["domcontentloaded", "networkidle2"], // Wait until the network is idle
+        timeout: 60000, // Set a timeout
       });
       console.log("page got call complete");
 
@@ -68,7 +68,7 @@ export const getProfileData = async (userId: string, cb: any) => {
     //   return r;
     // });
 
-    console.log("Page loaded successfully :", profileData, "data");
+    console.log("Page loaded successfully :");
   } catch (error) {
     console.error("Failed to load the page:", error);
   } finally {
