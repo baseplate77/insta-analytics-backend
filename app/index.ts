@@ -127,7 +127,7 @@ app.post(
               return r;
             });
             // infinte time wait
-            // await delay(6000000);
+            await delay(5000);
             console.log("Page loaded successfully");
           } catch (error) {
             console.log("error in page navigation");
