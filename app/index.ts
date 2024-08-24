@@ -73,8 +73,8 @@ app.post(
 
       const headerRow = rows.shift();
       let userID = rows.map((d: string[]) => d[userIdRowIndex]);
-      userID = userID.slice(0, 10);
-      let followerData: any[] = [];
+      userID = userID.slice(0, 20);
+      let followerData: any[] = new Array(userID.length);
       let batchSize = 5;
       console.log("user :", userID);
 
@@ -85,7 +85,11 @@ app.post(
 
         let userIds = tempUserId.splice(i, i + batchSize);
 
-        let promises = userIds.map(async (username) => {
+        let promises = userIds.map(async (username, index) => {
+          let currentIndex = index + (i / batchSize) * batchSize;
+
+          console.log("current Index :", currentIndex);
+
           const profileDetailAPI = `https://api.notjustanalytics.com/profile/ig/analyze/${username}`;
           const { page, browser } = await getReaLBrowser();
           let profileData: any = undefined;
@@ -103,6 +107,7 @@ app.post(
                 try {
                   const data = await response.json();
                   profileData = data;
+                  followerData[currentIndex] = profileData.followers;
                 } catch (err) {
                   console.log("Response Body is not JSON.");
                 }
@@ -149,7 +154,7 @@ app.post(
             console.log("isClose :", page.isClosed());
             console.log("profile data :", profileData.followers);
 
-            followerData.push(profileData.followers);
+            // followerData.push(profileData.followers);
             if (!page.isClosed()) {
               await page.close();
             }
