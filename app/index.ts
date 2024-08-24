@@ -81,7 +81,7 @@ app.post(
       let headerRow = rows.shift();
 
       let userID = rows.map((d: string[]) => d[userIdRowIndex]);
-      userID = userID.slice(0, 4);
+      userID = userID.slice(0, 20);
       // rows.forEach((row, rowIndex) => {
       //   console.log(`Row ${rowIndex}:`, row);
       // });
@@ -91,7 +91,7 @@ app.post(
       // });
 
       let followerData: any[] = [];
-      let batchSize = 2;
+      let batchSize = 10;
       for (let i = 0; i < userID.length; i += batchSize) {
         let tempUserId = [...userID];
 
@@ -165,7 +165,7 @@ app.post(
 
                 return r;
               });
-              await delay(30000);
+              await delay(60000);
             } catch (error) {
               console.log("error in page navigation");
             }
