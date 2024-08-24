@@ -247,6 +247,8 @@ app.post(
       //   const pairResults = await Promise.all(pair.map((p: any) => p()));
       // }
 
+      console.log("completed :", followerData);
+
       res.send({ success: true, followerData, userID });
     } catch (error) {
       console.error("Error reading XLSX file:", error);
