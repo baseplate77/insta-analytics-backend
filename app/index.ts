@@ -75,7 +75,7 @@ app.post(
       let userID = rows.map((d: string[]) => d[userIdRowIndex]);
       userID = userID.slice(0, 20);
       let followerData: any[] = new Array(userID.length);
-      let batchSize = 20;
+      let batchSize = 5;
       console.log("user :", userID);
 
       for (let i = 0; i < userID.length; i += batchSize) {
