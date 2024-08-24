@@ -15,7 +15,7 @@ export const getReaLBrowser = async () => {
   let { connect } = await import_("puppeteer-real-browser");
   const { page, browser } = await connect({
     headless: "auto",
-    args: [],
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
     customConfig: {},
     skipTarget: [],
     fingerprint: false,
