@@ -133,18 +133,9 @@ app.post(
                     console.log("Type:", type);
                     let data = await response.json(); // Attempt to parse the response as JSON
                     profileData = data;
-                  } else if (url.includes(followingDataAPI)) {
-                    if (status === 404) {
-                      throw "profile not found ";
-                    }
-                    let data = await response.json(); // Attempt to parse the response as JSON
-                    followingData = data;
                   }
 
-                  if (
-                    profileData !== undefined &&
-                    followingData !== undefined
-                  ) {
+                  if (profileData !== undefined) {
                     await delay(1000);
                     await page.close();
                   }
@@ -181,7 +172,9 @@ app.post(
           } catch (error) {
             console.error("Failed to load the page:", error);
           } finally {
-            if (followingData === undefined && profileData === undefined) {
+            if (profileData === undefined) {
+              console.log("page close with error profileDate :", profileData);
+
               throw "profile not found";
             }
             // cb(profileData);
