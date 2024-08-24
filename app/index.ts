@@ -159,12 +159,13 @@ app.post(
                   timeout: 60000, // Set a timeout
                 }
               );
-              // await page.waitForRequest((response: any) => {
-              //   let r = response.url().includes(profileDetailAPI);
-              //   // console.log("response :", r, "url :", response.url());
+              await page.waitForRequest((response: any) => {
+                let r = response.url().includes(profileDetailAPI);
+                // console.log("response :", r, "url :", response.url());
 
-              //   return r;
-              // });
+                return r;
+              });
+              await delay(30000);
             } catch (error) {
               console.log("error in page navigation");
             }
