@@ -72,18 +72,10 @@ app.post(
       console.log("userIdRowIndex", userIdRowIndex);
 
       const headerRow = rows.shift();
-      let userID = rows.map((d: string[]) => d[userIdRowIndex]).slice(0, 4);
-      userID = userID.slice(0, 4);
-      let followerData: any[] = [];
-      let batchSize = 2;
-      // for (let i = 0; i < userID.length; i += batchSize) {
-      //   let tempUserId = [...userID];
+      const userID = rows.map((d: string[]) => d[userIdRowIndex]).slice(0, 4);
+      const username = userID[0];
 
-      //   let userIds = tempUserId.splice(i, i + batchSize);
-
-      //   let promises = userIds.map(async (username) => {
-      let username = userID[0];
-      const { page, browser } = await getReaLBrowser();
+      const { page } = await getReaLBrowser();
       let profileData: any = undefined;
 
       page.on("response", async (response: any) => {
@@ -124,22 +116,10 @@ app.post(
         console.log("Page loaded successfully");
       } catch (error) {
         console.log("error in page navigation");
-      } finally {
-        if (!page.isClosed()) {
-          await page.close();
-        }
-        await browser.close();
       }
 
       if (profileData === undefined) throw "profile not found";
-      followerData.push(profileData.followers);
-      // });
-
-      //   await Promise.all([...promises]);
-      // }
-      console.log("completed :", followerData);
-
-      res.send({ followerData, success: true });
+      res.send({ profileData, success: true });
     } catch (error) {
       console.error("Error reading XLSX file:", error);
       res.status(500).send("Error reading XLSX file");
