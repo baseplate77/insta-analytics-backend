@@ -75,7 +75,7 @@ app.post(
       let userID = rows.map((d: string[]) => d[userIdRowIndex]);
       userID = userID.slice(0, 10);
       let followerData: any[] = [];
-      let batchSize = 4;
+      let batchSize = 2;
       console.log("user :", userID);
 
       for (let i = 0; i < userID.length; i += batchSize) {
@@ -137,8 +137,8 @@ app.post(
           } finally {
             if (!page.isClosed()) {
               await page.close();
+              await browser.close();
             }
-            // await browser.close();
           }
 
           if (profileData === undefined) throw "profile not found";
