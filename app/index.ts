@@ -8,10 +8,13 @@ import fs from "fs";
 // @ts-ignore
 import import_ from "@brillout/import";
 import xlsx from "xlsx";
+import tpuch from "touch";
 
 import axios from "axios";
 import { getProfileData } from "./utils/get_profile_data";
 import path from "path";
+import touch from "touch";
+import { amdin } from "./utils/firebase";
 // @ts-ignore
 dotenv.config();
 
@@ -37,6 +40,7 @@ app.get("/proxy-image/:url", async (req, res) => {
     res.status(500).send("Error fetching image");
   }
 });
+
 const requestQueue: (() => Promise<void>)[] = [];
 let isProcessing = false;
 
@@ -77,7 +81,7 @@ app.post(
       let headerRow = rows.shift();
 
       let userID = rows.map((d: string[]) => d[userIdRowIndex]);
-      userID = userID.slice(0, 2);
+      userID = userID.slice(0, 1);
       // rows.forEach((row, rowIndex) => {
       //   console.log(`Row ${rowIndex}:`, row);
       // });
@@ -108,24 +112,40 @@ app.post(
 
       // const workbook = xlsx.utils.book_new();
 
-      // const workbook2 = xlsx.utils.book_new();
+      const workbook2 = xlsx.utils.book_new();
 
-      // const xlsxData = [[...headerRow, "Follower Count", "End Goal"]];
+      const xlsxData = [[...headerRow, "Follower Count", "End Goal"]];
 
-      // for (let i = 0; i < rows.length; i++) {
-      //   let row = rows[i];
-      //   xlsxData.push([...row, followerData[i], 3]);
+      for (let i = 0; i < rows.length; i++) {
+        let row = rows[i];
+        xlsxData.push([...row, followerData[i], 3]);
+      }
+
+      const worksheet = xlsx.utils.aoa_to_sheet(xlsxData);
+      xlsx.utils.book_append_sheet(workbook2, worksheet, "Report");
+      const fileName = `Report-${new Date()
+        .toLocaleDateString("en-GB")
+        .replace(/\//g, "-")}.xlsx`;
+      const filePath = path.join(__dirname, fileName);
+
+      // if (!fs.existsSync(filePath)) {
+      // await touch(filePath, { force: true }, (err) => {
+      //   console.log("error in creating file :", err);
+      // });
       // }
+      console.log("dir :", filePath);
 
-      // const worksheet = xlsx.utils.aoa_to_sheet(xlsxData);
-      // xlsx.utils.book_append_sheet(workbook2, worksheet, "Report");
-      // const filePath = path.join(
-      //   __dirname,
-      //   `Report-${new Date().toLocaleDateString()}.xlsx`
-      // );
       // fs.closeSync(fs.openSync(filePath, "w"));
 
-      // xlsx.writeFile(workbook, filePath);
+      xlsx.writeFile(workbook2, filePath);
+      const bucket = amdin.storage().bucket();
+      await bucket.upload(filePath, {
+        destination: `reports/${fileName}`,
+        metadata: {
+          contentType:
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        },
+      });
 
       // await processInBatches(promises, 2);
       // while (promises.length > 0) {

@@ -58,11 +58,11 @@ export const getProfileData = async (userId: string, cb: any) => {
   } catch (error) {
     console.error("Failed to load the page:", error);
   } finally {
-    // if (profileData === undefined) {
-    //   console.log("profile data not define");
+    if (profileData === undefined) {
+      console.log("profile data not define");
 
-    //   throw "profile not found";
-    // }
+      throw "profile not found";
+    }
     await browser.close();
     cb(profileData);
     console.log(userId, profileData.followers);
