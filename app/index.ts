@@ -134,6 +134,7 @@ app.post(
                     let data = await response.json(); // Attempt to parse the response as JSON
                     profileData = data;
                   }
+                  console.log("followerData :", profileData.followers);
 
                   if (profileData !== undefined) {
                     await delay(1000);
