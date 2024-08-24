@@ -46,6 +46,14 @@ export const getProfileData = async (userId: string, cb: any) => {
         waitUntil: ["load"],
         timeout: 60000,
       });
+      console.log("page got call complete");
+
+      await page.waitForRequest((response: any) => {
+        let r = response.url().includes(profileDetailAPI);
+        console.log("response :", r, "url :", response.url());
+
+        return r;
+      });
     } catch (error) {
       console.log("Error in page navigation:");
     }
