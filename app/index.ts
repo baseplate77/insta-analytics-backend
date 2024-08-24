@@ -69,7 +69,7 @@ app.post(
       const userIdRowIndex = rows[0].findIndex(
         (d: string) => d.toLowerCase() === "user id"
       );
-      console.log("userIdRowIndex", userIdRowIndex);
+      // console.log("userIdRowIndex", userIdRowIndex);
 
       const headerRow = rows.shift();
       let userID = rows.map((d: string[]) => d[userIdRowIndex]).slice(0, 4);
@@ -77,6 +77,8 @@ app.post(
       let followerData: any[] = [];
       let batchSize = 4;
       for (let i = 0; i < userID.length; i += batchSize) {
+        console.log("ii:", i);
+
         let tempUserId = [...userID];
 
         let userIds = tempUserId.splice(i, i + batchSize);
