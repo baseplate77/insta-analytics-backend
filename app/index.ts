@@ -91,7 +91,7 @@ app.post(
       // });
 
       let followerData: any[] = [];
-      let batchSize = 5;
+      let batchSize = 4;
       for (let i = 0; i < userID.length; i += batchSize) {
         let tempUserId = [...userID];
 
