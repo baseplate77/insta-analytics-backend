@@ -64,6 +64,12 @@ export const getProfileData = async (userId: string, cb: any) => {
         waitUntil: ["domcontentloaded", "networkidle2"], // Wait until the network is idle
         timeout: 60000, // Set a timeout
       });
+      await page.waitForRequest((response: any) => {
+        let r = response.url().includes(profileDetailAPI);
+        // console.log("response :", r, "url :", response.url());
+
+        return r;
+      });
     } catch (error) {
       console.log("error in page navigation");
     }

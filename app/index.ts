@@ -99,9 +99,95 @@ app.post(
         let userIds = tempUserId.splice(i, i + batchSize);
         // let promises = userIds.map(async (userId) => {
         //   console.log("userIds length :", userID.length, tempUserId.length);
-        await getProfileData(userIds[0], (data: any) => {
-          followerData.push(data == undefined ? 0 : data.followers);
-        });
+        let userId = userIds[0];
+        const { page, browser } = await getReaLBrowser();
+
+        const profileDetailAPI = `https://api.notjustanalytics.com/profile/ig/analyze/${userId}`;
+
+        let profileData: any = undefined;
+        let followingData: any = undefined;
+        // Visit the URL
+        try {
+          page.on("response", async (response: any) => {
+            const url = response.url() as string;
+            const status = response.status();
+            const headers = response.headers();
+            const type = response.request().resourceType();
+            // console.log(url, type);
+            // Only log API responses (JSON responses typically)
+            const followingDataAPI =
+              "https://api.notjustanalytics.com/profile/ig/history/";
+            const profileDetailAPI = `https://api.notjustanalytics.com/profile/ig/analyze/${userId}`;
+            if (
+              response.request().resourceType() === "xhr" ||
+              response.request().resourceType() === "fetch"
+            ) {
+              try {
+                if (url.includes(profileDetailAPI)) {
+                  if (status === 404) {
+                    throw "profile not found ";
+                  }
+                  console.log(`URL: ${url}`);
+                  console.log(`Status: ${status}`);
+                  console.log("Type:", type);
+                  let data = await response.json(); // Attempt to parse the response as JSON
+                  profileData = data;
+                } else if (url.includes(followingDataAPI)) {
+                  if (status === 404) {
+                    throw "profile not found ";
+                  }
+                  let data = await response.json(); // Attempt to parse the response as JSON
+                  followingData = data;
+                }
+
+                if (profileData !== undefined && followingData !== undefined) {
+                  await delay(1000);
+                  await page.close();
+                }
+              } catch (err) {
+                console.log("Response Body is not JSON.");
+                await delay(1000);
+                console.log("isclosed :", page.isClosed());
+
+                if (!page.isClosed()) {
+                  await page.close();
+                }
+              }
+            }
+          });
+          try {
+            await page.goto(
+              `https://app.notjustanalytics.com/analysis/${userId}`,
+              {
+                waitUntil: ["domcontentloaded", "networkidle2"], // Wait until the network is idle
+                timeout: 60000, // Set a timeout
+              }
+            );
+            await page.waitForRequest((response: any) => {
+              let r = response.url().includes(profileDetailAPI);
+              // console.log("response :", r, "url :", response.url());
+
+              return r;
+            });
+          } catch (error) {
+            console.log("error in page navigation");
+          }
+          console.log("Page loaded successfully");
+        } catch (error) {
+          console.error("Failed to load the page:", error);
+        } finally {
+          if (followingData === undefined && profileData === undefined) {
+            throw "profile not found";
+          }
+          // cb(profileData);
+          console.log(userId, profileData);
+          // res.send({ followingData, profileData, success: true });
+        }
+
+        // await getProfileData(userIds[0], (data: any) => {
+        followerData.push(data == undefined ? 0 : profileData.followers);
+
+        // });
         // });
 
         // await Promise.all(promises);
