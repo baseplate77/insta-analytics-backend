@@ -138,7 +138,7 @@ app.post(
             if (!page.isClosed()) {
               await page.close();
             }
-            await browser.close();
+            // await browser.close();
           }
 
           if (profileData === undefined) throw "profile not found";
