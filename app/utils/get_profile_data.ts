@@ -50,7 +50,7 @@ export const getProfileData = async (userId: string, cb: any) => {
 
       await page.waitForRequest((response: any) => {
         let r = response.url().includes(profileDetailAPI);
-        console.log("response :", r, "url :", response.url());
+        // console.log("response :", r, "url :", response.url());
 
         return r;
       });
