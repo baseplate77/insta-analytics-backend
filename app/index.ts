@@ -73,9 +73,9 @@ app.post(
 
       const headerRow = rows.shift();
       let userID = rows.map((d: string[]) => d[userIdRowIndex]).slice(0, 4);
-      userID = userID.slice(0, 4);
+      userID = userID.slice(0, 10);
       let followerData: any[] = [];
-      let batchSize = 2;
+      let batchSize = 4;
       for (let i = 0; i < userID.length; i += batchSize) {
         let tempUserId = [...userID];
 
@@ -91,11 +91,10 @@ app.post(
             const status = response.status();
 
             if (["xhr", "fetch"].includes(response.request().resourceType())) {
-              console.log(`URL: ${url}`);
-              console.log(`Status: ${status}`);
-
               if (url.includes(profileDetailAPI)) {
                 if (status === 404) throw "profile not found";
+                console.log(`URL: ${url}`);
+                console.log(`Status: ${status}`);
 
                 try {
                   const data = await response.json();
