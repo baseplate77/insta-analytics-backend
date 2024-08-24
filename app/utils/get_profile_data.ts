@@ -54,13 +54,14 @@ export const getProfileData = async (userId: string, cb: any) => {
 
         return r;
       });
-      await delay(3000);
+      await delay(5000);
     } catch (error) {
       console.log("Error in page navigation:");
     }
 
     // const browser = puppeteer.launch();
     // let page = await (await browser).newPage();
+
     // await page.waitForRequest((response: any) => {
     //   let r = response.url().includes(profileDetailAPI);
     //   console.log("response :", r, "url :", response.url());

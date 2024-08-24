@@ -100,7 +100,7 @@ app.post(
         let promises = userIds.map(async (userId) => {
           console.log("userIds length :", userID.length, tempUserId.length);
           return await getProfileData(userId, (data: any) => {
-            followerData.push(data.followers);
+            followerData.push(data == undefined ? 0 : data.followers);
           });
         });
 
