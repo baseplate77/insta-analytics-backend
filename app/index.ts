@@ -72,10 +72,12 @@ app.post(
       // console.log("userIdRowIndex", userIdRowIndex);
 
       const headerRow = rows.shift();
-      let userID = rows.map((d: string[]) => d[userIdRowIndex]).slice(0, 4);
+      let userID = rows.map((d: string[]) => d[userIdRowIndex]);
       userID = userID.slice(0, 10);
       let followerData: any[] = [];
       let batchSize = 4;
+      console.log("user :", userID);
+
       for (let i = 0; i < userID.length; i += batchSize) {
         console.log("ii:", i);
 
