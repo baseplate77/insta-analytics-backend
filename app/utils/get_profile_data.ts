@@ -48,13 +48,13 @@ export const getProfileData = async (userId: string, cb: any) => {
       });
       console.log("page got call complete");
 
-      await page.waitForRequest((response: any) => {
-        let r = response.url().includes(profileDetailAPI);
-        // console.log("response :", r, "url :", response.url());
+      // await page.waitForRequest((response: any) => {
+      //   let r = response.url().includes(profileDetailAPI);
+      //   // console.log("response :", r, "url :", response.url());
 
-        return r;
-      });
-      await delay(5000);
+      //   return r;
+      // });
+      // await delay(5000);
     } catch (error) {
       console.log("Error in page navigation:");
     }
