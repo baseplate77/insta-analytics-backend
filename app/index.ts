@@ -73,7 +73,7 @@ app.post(
 
       const headerRow = rows.shift();
       let userID = rows.map((d: string[]) => d[userIdRowIndex]);
-      userID = userID.slice(0, 10);
+      userID = userID.slice(0, 4);
       let followerData: any[] = [];
       let batchSize = 2;
       console.log("user :", userID);
@@ -123,26 +123,40 @@ app.post(
                 timeout: 60000,
               }
             );
-            await page.waitForRequest((response: any) => {
-              let r = response.url().includes(profileDetailAPI);
-              // console.log("response :", r, "url :", response.url());
 
-              return r;
-            });
-            // infinte time wait
-            await delay(5000);
+            // await page.waitForRequest((response: any) => {
+            //   let r = response.url().includes(profileDetailAPI);
+            //   // console.log("response :", r, "url :", response.url());
+
+            //   return r;
+            // });
+            // // infinte time wait
+            // await delay(5000);
             console.log("Page loaded successfully");
           } catch (error) {
             console.log("error in page navigation");
           } finally {
+            await new Promise<void>((resolve, reject) => {
+              const checkProfileData = setInterval(() => {
+                console.log("waiting for profile data");
+
+                if (profileData !== undefined) {
+                  clearInterval(checkProfileData);
+                  resolve();
+                }
+              }, 100); //
+            });
+            console.log("isClose :", page.isClosed());
+            console.log("profile data :", profileData.followers);
+
+            followerData.push(profileData.followers);
             if (!page.isClosed()) {
               await page.close();
-              await browser.close();
             }
+            await browser.close();
           }
 
-          if (profileData === undefined) throw "profile not found";
-          followerData.push(profileData.followers);
+          // if (profileData === undefined) throw "profile not found";
         });
 
         await Promise.all([...promises]);
