@@ -76,66 +76,67 @@ app.post(
       userID = userID.slice(0, 4);
       let followerData: any[] = [];
       let batchSize = 2;
-      for (let i = 0; i < userID.length; i += batchSize) {
-        let tempUserId = [...userID];
+      // for (let i = 0; i < userID.length; i += batchSize) {
+      //   let tempUserId = [...userID];
 
-        let userIds = tempUserId.splice(i, i + batchSize);
+      //   let userIds = tempUserId.splice(i, i + batchSize);
 
-        let promises = userIds.map(async (username) => {
-          const { page, browser } = await getReaLBrowser();
-          let profileData: any = undefined;
+      //   let promises = userIds.map(async (username) => {
+      let username = userID[0];
+      const { page, browser } = await getReaLBrowser();
+      let profileData: any = undefined;
 
-          page.on("response", async (response: any) => {
-            const url = response.url() as string;
-            const status = response.status();
-            const profileDetailAPI = `https://api.notjustanalytics.com/profile/ig/analyze/${username}`;
+      page.on("response", async (response: any) => {
+        const url = response.url() as string;
+        const status = response.status();
+        const profileDetailAPI = `https://api.notjustanalytics.com/profile/ig/analyze/${username}`;
 
-            if (["xhr", "fetch"].includes(response.request().resourceType())) {
-              console.log(`URL: ${url}`);
-              console.log(`Status: ${status}`);
+        if (["xhr", "fetch"].includes(response.request().resourceType())) {
+          console.log(`URL: ${url}`);
+          console.log(`Status: ${status}`);
 
-              if (url.includes(profileDetailAPI)) {
-                if (status === 404) throw "profile not found";
+          if (url.includes(profileDetailAPI)) {
+            if (status === 404) throw "profile not found";
 
-                try {
-                  const data = await response.json();
-                  profileData = data;
-                } catch (err) {
-                  console.log("Response Body is not JSON.");
-                }
-
-                if (profileData !== undefined) {
-                  await delay(1000);
-                  await page.close();
-                }
-              }
+            try {
+              const data = await response.json();
+              profileData = data;
+            } catch (err) {
+              console.log("Response Body is not JSON.");
             }
-          });
 
-          try {
-            await page.goto(
-              `https://app.notjustanalytics.com/analysis/${username}`,
-              {
-                waitUntil: ["domcontentloaded", "networkidle2"],
-                timeout: 60000,
-              }
-            );
-            console.log("Page loaded successfully");
-          } catch (error) {
-            console.log("error in page navigation");
-          } finally {
-            if (!page.isClosed()) {
+            if (profileData !== undefined) {
+              await delay(1000);
               await page.close();
             }
-            await browser.close();
           }
+        }
+      });
 
-          if (profileData === undefined) throw "profile not found";
-          followerData.push(profileData.followers);
-        });
-
-        await Promise.all([...promises]);
+      try {
+        await page.goto(
+          `https://app.notjustanalytics.com/analysis/${username}`,
+          {
+            waitUntil: ["domcontentloaded", "networkidle2"],
+            timeout: 60000,
+          }
+        );
+        console.log("Page loaded successfully");
+      } catch (error) {
+        console.log("error in page navigation");
+      } finally {
+        if (!page.isClosed()) {
+          await page.close();
+        }
+        await browser.close();
       }
+
+      if (profileData === undefined) throw "profile not found";
+      followerData.push(profileData.followers);
+      // });
+
+      //   await Promise.all([...promises]);
+      // }
       console.log("completed :", followerData);
 
       res.send({ followerData, success: true });
