@@ -21,7 +21,7 @@ export const getReaLBrowser = async () => {
     fingerprint: false,
     turnstile: true,
     connectOption: {
-      // executablePath: "/usr/bin/google-chrome",
+      executablePath: "/usr/bin/google-chrome",
     },
   });
 
