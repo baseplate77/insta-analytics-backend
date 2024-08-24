@@ -54,6 +54,7 @@ export const getProfileData = async (userId: string, cb: any) => {
 
         return r;
       });
+      await delay(3000);
     } catch (error) {
       console.log("Error in page navigation:");
     }
