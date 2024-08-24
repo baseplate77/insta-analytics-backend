@@ -83,7 +83,7 @@ app.post(
 
         let tempUserId = [...userID];
 
-        let userIds = tempUserId.splice(i, i + batchSize);
+        let userIds = tempUserId.splice(i, batchSize);
         console.log("userList :", userIds);
 
         let promises = userIds.map(async (username, index) => {
