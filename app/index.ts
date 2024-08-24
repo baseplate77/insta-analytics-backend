@@ -16,6 +16,7 @@ import path from "path";
 import touch from "touch";
 import { amdin } from "./utils/firebase";
 import puppeteer from "puppeteer";
+import { sendMail } from "./utils/resend";
 // @ts-ignore
 dotenv.config();
 
@@ -73,10 +74,12 @@ app.post(
 
       const headerRow = rows.shift();
       let userID = rows.map((d: string[]) => d[userIdRowIndex]);
-      // userID = userID.slice(0, 20);
+      userID = userID.slice(0, 4);
       let followerData: any[] = new Array(userID.length);
-      let batchSize = 5;
+      let batchSize = 2;
       console.log("user :", userID);
+      // process started
+      res.send({ success: true });
 
       for (let i = 0; i < userID.length; i += batchSize) {
         console.log("ii:", i);
@@ -113,9 +116,10 @@ app.post(
                   console.log("Response Body is not JSON.");
                 }
 
+                // // remove for production
                 // if (profileData !== undefined) {
                 //   await delay(1000);
-                //   // await page.close();
+                //   await page.close();
                 // }
               }
             }
@@ -169,6 +173,61 @@ app.post(
       }
       console.log("completed :", followerData);
 
+      const workbook2 = xlsx.utils.book_new();
+
+      const xlsxData = [[...headerRow, "Follower Count", "End Goal"]];
+      let endGoal = 500000;
+      for (let i = 0; i < rows.length; i++) {
+        let row = rows[i];
+        xlsxData.push([...row, followerData[i], endGoal - followerData[i]]);
+      }
+
+      const worksheet = xlsx.utils.aoa_to_sheet(xlsxData);
+      xlsx.utils.book_append_sheet(workbook2, worksheet, "Report");
+      const fileName = `Report-${new Date()
+        .toLocaleDateString("en-GB")
+        .replace(/\//g, "-")}.xlsx`;
+      const filePath = path.join(__dirname, fileName);
+
+      // if (!fs.existsSync(filePath)) {
+      // await touch(filePath, { force: true }, (err) => {
+      //   console.log("error in creating file :", err);
+      // });
+      // }
+      console.log("dir :", filePath);
+
+      // fs.closeSync(fs.openSync(filePath, "w"));
+
+      xlsx.writeFile(workbook2, filePath);
+      const bucket = amdin.storage().bucket();
+      await bucket.upload(filePath, {
+        destination: `reports/${fileName}`,
+        metadata: {
+          contentType:
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        },
+      });
+      fs.unlinkSync(filePath);
+      // Get the download URL
+      const file = bucket.file(`reports/${fileName}`);
+      const [url] = await file.getSignedUrl({
+        action: "read",
+        expires: "03-01-2500", // Set an appropriate expiration date
+      });
+
+      // send mail
+      console.log("url :", url);
+
+      await sendMail(
+        "base8087@gmail.com",
+        "report",
+        `
+        <div>
+          Report link
+          <a href="${url}">${fileName}</a>
+        </div>
+        `
+      );
       res.send({ followerData, success: true });
     } catch (error) {
       console.error("Error reading XLSX file:", error);
