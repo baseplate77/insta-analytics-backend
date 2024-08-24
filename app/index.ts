@@ -173,19 +173,19 @@ app.get("/profile-report", async (req: Request, res: Response) => {
     // return;
 
     try {
-      const { page } = await getReaLBrowser();
-      // let { connect } = await import_("puppeteer-real-browser");
-      // const { page, browser } = await connect({
-      //   headless: "auto",
-      //   args: [],
-      //   customConfig: {},
-      //   skipTarget: [],
-      //   fingerprint: false,
-      //   turnstile: true,
-      //   connectOption: {
-      //     executablePath: "/usr/bin/google-chrome",
-      //   },
-      // });
+      // const { page } = await getReaLBrowser();
+      let { connect } = await import_("puppeteer-real-browser");
+      const { page, browser } = await connect({
+        headless: "auto",
+        args: [],
+        customConfig: {},
+        skipTarget: [],
+        fingerprint: false,
+        turnstile: true,
+        connectOption: {
+          executablePath: "/usr/bin/google-chrome",
+        },
+      });
       let profileData: any = undefined;
       let followingData: any = undefined;
       // Visit the URL
