@@ -6,16 +6,11 @@ import { addMockImage } from "./utils/imageBlocker";
 import cors from "cors";
 import fs from "fs";
 // @ts-ignore
-import import_ from "@brillout/import";
 import xlsx from "xlsx";
-import tpuch from "touch";
 
 import axios from "axios";
-import { getProfileData } from "./utils/get_profile_data";
 import path from "path";
-import touch from "touch";
 import { amdin } from "./utils/firebase";
-import puppeteer from "puppeteer";
 import { sendMail } from "./utils/resend";
 // @ts-ignore
 dotenv.config();
@@ -23,7 +18,7 @@ dotenv.config();
 const app: Express = express();
 const port = process.env.PORT || 3000;
 
-// app.use(cors());
+app.use(cors());
 app.use(express.json());
 
 app.get("/", (req: Request, res: Response) => {
@@ -74,7 +69,7 @@ app.post(
 
       const headerRow = rows.shift();
       let userID = rows.map((d: string[]) => d[userIdRowIndex]);
-      userID = userID.slice(0, 4);
+      userID = userID.slice(0, 2);
       let followerData: any[] = new Array(userID.length);
       let batchSize = 2;
       console.log("user :", userID);
@@ -207,7 +202,7 @@ app.post(
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         },
       });
-      fs.unlinkSync(filePath);
+
       // Get the download URL
       const file = bucket.file(`reports/${fileName}`);
       const [url] = await file.getSignedUrl({
@@ -228,10 +223,12 @@ app.post(
         </div>
         `
       );
-      res.send({ followerData, success: true });
+
+      fs.unlinkSync(filePath);
+      // res.send({ followerData, success: true });
     } catch (error) {
       console.error("Error reading XLSX file:", error);
-      res.status(500).send("Error reading XLSX file");
+      // res.status(500).send("Error reading XLSX file");
     }
   }
 );

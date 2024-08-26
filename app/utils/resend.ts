@@ -6,7 +6,7 @@ export const sendMail = async (
   to: string,
   subject: string,
   msg: string,
-  from = "WebBotify <noreply@webbotify.com>"
+  from = "Instaanalyzer <noreply@instaanalyser.com>"
 ) => {
   try {
     const data = await resend.emails.send({
