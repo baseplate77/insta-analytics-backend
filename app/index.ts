@@ -66,6 +66,10 @@ app.post(
       const userIdRowIndex = rows[0].findIndex(
         (d: string) => d.toLowerCase() === "user id"
       );
+
+      const endGoalIndex = rows[0].findIndex(
+        (d: string) => d.toLowerCase() === "endgoal"
+      );
       // console.log("userIdRowIndex", userIdRowIndex);
 
       const headerRow = rows.shift();
@@ -171,10 +175,10 @@ app.post(
 
       const workbook2 = xlsx.utils.book_new();
 
-      const xlsxData = [[...headerRow, "Follower Count", "End Goal"]];
-      let endGoal = 500000;
+      const xlsxData = [[...headerRow, "Follower Count", "EndGoal"]];
       for (let i = 0; i < rows.length; i++) {
         let row = rows[i];
+        let endGoal = row[endGoalIndex] ?? 0;
         xlsxData.push([...row, followerData[i], endGoal - followerData[i]]);
       }
 
