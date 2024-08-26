@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-export const SENDER_EMAIL = "Processcordinator28@gmail.com";
+export const SENDER_EMAIL = "processcordinator28@gmail.com";
 // export const SENDER_EMAIL = "base8087@gmail.com";
 
 export const proxyList = [

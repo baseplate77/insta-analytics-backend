@@ -68,7 +68,7 @@ app.post(
       );
 
       const endGoalIndex = rows[0].findIndex(
-        (d: string) => d.toLowerCase() === "endgoal"
+        (d: string) => d.toLowerCase() === "end count"
       );
       // console.log("userIdRowIndex", userIdRowIndex);
 
@@ -175,7 +175,7 @@ app.post(
 
       const workbook2 = xlsx.utils.book_new();
 
-      const xlsxData = [[...headerRow, "Follower Count", "End Goal"]];
+      const xlsxData = [[...headerRow, "Followers", "Differenceß"]];
       for (let i = 0; i < rows.length; i++) {
         let row = rows[i];
         let endGoal = row[endGoalIndex] ?? 0;
