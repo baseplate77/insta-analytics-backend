@@ -21,5 +21,5 @@ let serviceAccount = {
 
 export const amdin = firebaseAdmin.initializeApp({
   credential: firebaseAdmin.credential.cert(serviceAccount as any),
-  storageBucket: "attendance-app-db-416e4.appspot.com",
+  storageBucket: process.env.STORAGE_BUCKET,
 });

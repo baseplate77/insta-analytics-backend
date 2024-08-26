@@ -12,13 +12,14 @@ import axios from "axios";
 import path from "path";
 import { amdin } from "./utils/firebase";
 import { sendMail } from "./utils/resend";
+import { SENDER_EMAIL } from "./constants";
 // @ts-ignore
 dotenv.config();
 
 const app: Express = express();
 const port = process.env.PORT || 3000;
 
-// app.use(cors());
+app.use(cors());
 app.use(express.json());
 
 app.get("/", (req: Request, res: Response) => {
@@ -214,7 +215,7 @@ app.post(
       console.log("url :", url);
 
       await sendMail(
-        "base8087@gmail.com",
+        SENDER_EMAIL,
         "report",
         `
         <div>

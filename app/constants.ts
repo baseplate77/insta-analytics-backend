@@ -2,8 +2,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-console.log("prpxy url :", process.env.PROXY_URL);
-
+export const SENDER_EMAIL = "Processcordinator28@gmail.com";
 export const proxyList = [
   `${process.env.PROXY_URL}:10001`,
   `${process.env.PROXY_URL}:10002`,
