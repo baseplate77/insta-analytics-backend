@@ -175,7 +175,7 @@ app.post(
 
       const workbook2 = xlsx.utils.book_new();
 
-      const xlsxData = [[...headerRow, "Follower Count", "EndGoal"]];
+      const xlsxData = [[...headerRow, "Follower Count", "End Goal"]];
       for (let i = 0; i < rows.length; i++) {
         let row = rows[i];
         let endGoal = row[endGoalIndex] ?? 0;
