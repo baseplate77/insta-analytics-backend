@@ -70,9 +70,9 @@ app.post(
 
       const headerRow = rows.shift();
       let userID = rows.map((d: string[]) => d[userIdRowIndex]);
-      userID = userID.slice(0, 2);
+      // userID = userID.slice(0, 2);
       let followerData: any[] = new Array(userID.length);
-      let batchSize = 2;
+      let batchSize = 5;
       console.log("user :", userID);
       // process started
       res.send({ success: true });
