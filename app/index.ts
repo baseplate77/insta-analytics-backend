@@ -12,14 +12,14 @@ import axios from "axios";
 import path from "path";
 import { amdin } from "./utils/firebase";
 import { sendMail } from "./utils/resend";
-import { SENDER_EMAIL } from "./constants";
+import { sampleResponse, SENDER_EMAIL } from "./constants";
 // @ts-ignore
 dotenv.config();
 
 const app: Express = express();
 const port = process.env.PORT || 3000;
 
-// app.use(cors());
+app.use(cors());
 app.use(express.json());
 
 app.get("/", (req: Request, res: Response) => {
@@ -76,7 +76,7 @@ app.post(
       let userID = rows.map((d: string[]) => d[userIdRowIndex]);
       // userID = userID.slice(0, 2);
       let followerData: any[] = new Array(userID.length);
-      let batchSize = 5;
+      let batchSize = 4;
       console.log("user :", userID);
       // process started
       res.send({ success: true });
@@ -242,9 +242,6 @@ app.get("/profile-report", async (req: Request, res: Response) => {
   requestQueue.push(async () => {
     const { username } = req.query;
     console.log("username :", username);
-
-    // res.send(sampleResponse);
-    // return;
 
     try {
       const { page } = await getReaLBrowser();
