@@ -94,7 +94,10 @@ app.post(
 
           console.log("current Index :", currentIndex);
 
-          const profileDetailAPI = `https://api.notjustanalytics.com/profile/ig/analyze/${username}`;
+          const profileDetailAPI = `https://api.notjustanalytics.com/profile/ig/analyze/${username.replace(
+            /\s+/g,
+            ""
+          )}`;
           const { page, browser } = await getReaLBrowser();
           let profileData: any = undefined;
 
@@ -116,18 +119,21 @@ app.post(
                   console.log("Response Body is not JSON.");
                 }
 
-                // // remove for production
-                // if (profileData !== undefined) {
-                //   await delay(1000);
-                //   await page.close();
-                // }
+                // remove for production
+                if (profileData !== undefined) {
+                  await delay(1000);
+                  await page.close();
+                }
               }
             }
           });
 
           try {
             await page.goto(
-              `https://app.notjustanalytics.com/analysis/${username}`,
+              `https://app.notjustanalytics.com/analysis/${username.replace(
+                /\s+/g,
+                ""
+              )}`,
               {
                 waitUntil: ["domcontentloaded", "networkidle2"],
                 timeout: 60000,
