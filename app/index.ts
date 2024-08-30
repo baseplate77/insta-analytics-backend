@@ -74,7 +74,7 @@ app.post(
 
       const headerRow = rows.shift();
       let userID = rows.map((d: string[]) => d[userIdRowIndex]);
-      // userID = userID.slice(0, 2);
+      userID = userID.slice(40, 50);
       let followerData: any[] = new Array(userID.length);
       let batchSize = 4;
       console.log("user :", userID);
@@ -93,38 +93,46 @@ app.post(
           let currentIndex = index + (i / batchSize) * batchSize;
 
           console.log("current Index :", currentIndex);
-
+          // cherissehaynessofficial
           const profileDetailAPI = `https://api.notjustanalytics.com/profile/ig/analyze/${username.replace(
             /\s+/g,
             ""
           )}`;
+
+          const profileNotFoundUrl = "profile-not-found";
           const { page, browser } = await getReaLBrowser();
           let profileData: any = undefined;
 
           page.on("response", async (response: any) => {
             const url = response.url() as string;
             const status = response.status();
+            try {
+              if (
+                ["xhr", "fetch"].includes(response.request().resourceType())
+              ) {
+                if (url.includes(profileDetailAPI)) {
+                  if (status === 404) throw "profile not found";
+                  console.log(`URL: ${url}`);
+                  console.log(`Status: ${status}`);
 
-            if (["xhr", "fetch"].includes(response.request().resourceType())) {
-              if (url.includes(profileDetailAPI)) {
-                if (status === 404) throw "profile not found";
-                console.log(`URL: ${url}`);
-                console.log(`Status: ${status}`);
+                  try {
+                    const data = await response.json();
+                    profileData = data;
+                    followerData[currentIndex] = profileData.followers;
+                  } catch (err) {
+                    console.log("Response Body is not JSON.");
+                  }
 
-                try {
-                  const data = await response.json();
-                  profileData = data;
-                  followerData[currentIndex] = profileData.followers;
-                } catch (err) {
-                  console.log("Response Body is not JSON.");
+                  // // remove for production
+                  // if (profileData !== undefined) {
+                  //   await delay(1000);
+                  //   await page.close();
+                  // }
                 }
-
-                // // remove for production
-                // if (profileData !== undefined) {
-                //   await delay(1000);
-                //   await page.close();
-                // }
               }
+            } catch (error) {
+              console.log("profile data not found, setting it to 0");
+              profileData = { followers: 0 };
             }
           });
 
@@ -152,18 +160,32 @@ app.post(
           } catch (error) {
             console.log("error in page navigation");
           } finally {
-            await new Promise<void>((resolve, reject) => {
-              const checkProfileData = setInterval(() => {
-                console.log("waiting for profile data :", username);
+            try {
+              await new Promise<void>((resolve, reject) => {
+                const checkProfileData = setInterval(() => {
+                  console.log("waiting for profile data :", username);
 
-                if (profileData !== undefined) {
+                  if (profileData !== undefined) {
+                    clearInterval(checkProfileData);
+                    resolve();
+                  }
+                }, 1000); //
+
+                // Break out of the loop after 1 minute
+                setTimeout(() => {
                   clearInterval(checkProfileData);
-                  resolve();
-                }
-              }, 1000); //
-            });
+                  reject(
+                    new Error(
+                      "Timeout: Profile data not received within 1 minute"
+                    )
+                  );
+                }, 90000);
+              });
+            } catch (error) {
+              console.log("error :", error);
+            }
             console.log("isClose :", page.isClosed());
-            console.log("profile data :", profileData.followers);
+            // console.log("profile data :", profileData.followers);
 
             // followerData.push(profileData.followers);
             if (!page.isClosed()) {
