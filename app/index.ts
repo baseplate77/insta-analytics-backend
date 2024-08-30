@@ -19,7 +19,7 @@ dotenv.config();
 const app: Express = express();
 const port = process.env.PORT || 3000;
 
-app.use(cors());
+// app.use(cors());
 app.use(express.json());
 
 app.get("/", (req: Request, res: Response) => {
@@ -119,11 +119,11 @@ app.post(
                   console.log("Response Body is not JSON.");
                 }
 
-                // remove for production
-                if (profileData !== undefined) {
-                  await delay(1000);
-                  await page.close();
-                }
+                // // remove for production
+                // if (profileData !== undefined) {
+                //   await delay(1000);
+                //   await page.close();
+                // }
               }
             }
           });
@@ -154,7 +154,7 @@ app.post(
           } finally {
             await new Promise<void>((resolve, reject) => {
               const checkProfileData = setInterval(() => {
-                console.log("waiting for profile data");
+                console.log("waiting for profile data :", username);
 
                 if (profileData !== undefined) {
                   clearInterval(checkProfileData);
