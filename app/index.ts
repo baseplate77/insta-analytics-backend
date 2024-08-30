@@ -19,7 +19,7 @@ dotenv.config();
 const app: Express = express();
 const port = process.env.PORT || 3000;
 
-// app.use(cors());
+app.use(cors());
 app.use(express.json());
 
 app.get("/", (req: Request, res: Response) => {
@@ -74,7 +74,7 @@ app.post(
 
       const headerRow = rows.shift();
       let userID = rows.map((d: string[]) => d[userIdRowIndex]);
-      userID = userID.slice(40, 50);
+      // userID = userID.slice(40, 50);
       let followerData: any[] = new Array(userID.length);
       let batchSize = 4;
       console.log("user :", userID);
