@@ -132,7 +132,8 @@ app.post(
               }
             } catch (error) {
               console.log("profile data not found, setting it to 0");
-              profileData = { followers: 0 };
+              profileData = { followers: -1 };
+              followerData[currentIndex] = -1;
             }
           });
 
