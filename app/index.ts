@@ -22,6 +22,12 @@ const port = process.env.PORT || 3000;
 // app.use(cors());
 app.use(express.json());
 
+app.get("/timeout-error", async (req: Request, res: Response) => {
+  let { time } = req.query;
+  await delay(parseInt(time as string) ?? 1000);
+  res.send("sucess");
+});
+
 app.get("/", (req: Request, res: Response) => {
   res.send("Express + TypeScript Server");
 });
@@ -35,7 +41,9 @@ app.get("/proxy-image/:url", async (req, res) => {
     res.set("Content-Type", "image/jpeg");
     res.send(response.data);
   } catch (error) {
-    res.status(500).send("Error fetching image");
+    console.log("error in proxy image :", error);
+
+    res.status(500).send(`Error fetching image , ${error}`);
   }
 });
 
@@ -74,6 +82,7 @@ app.post(
 
       const headerRow = rows.shift();
       let userID = rows.map((d: string[]) => d[userIdRowIndex]);
+      userID = userID.filter((id) => id != null && id != undefined);
       // userID = userID.slice(40, 50);
       let followerData: any[] = new Array(userID.length);
       let batchSize = 4;
