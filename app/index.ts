@@ -362,9 +362,24 @@ app.get("/profile-report", async (req: Request, res: Response) => {
       } catch (error) {
         console.error("Failed to load the page:", error);
       } finally {
-        if (followingData === undefined && profileData === undefined) {
-          throw "profile not found";
-        }
+        await new Promise<void>((resolve, reject) => {
+          const checkProfileData = setInterval(() => {
+            console.log("waiting for profile data :", username);
+
+            if (profileData !== undefined && followingData !== undefined) {
+              clearInterval(checkProfileData);
+              resolve();
+            }
+          }, 1000); //
+
+          // Break out of the loop after 1 minute
+          setTimeout(() => {
+            clearInterval(checkProfileData);
+            reject(
+              new Error("Timeout: Profile data not received within 1 minute")
+            );
+          }, 60000);
+        });
         res.send({ followingData, profileData, success: true });
       }
     } catch (error) {
