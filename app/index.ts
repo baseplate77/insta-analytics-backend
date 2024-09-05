@@ -282,7 +282,7 @@ app.get("/profile-report", async (req: Request, res: Response) => {
     console.log("username :", username);
 
     try {
-      const { page } = await getReaLBrowser();
+      const { page, browser } = await getReaLBrowser();
       // let { connect } = await import_("puppeteer-real-browser");
       // const { page, browser } = await connect({
       //   headless: "auto",
@@ -380,6 +380,10 @@ app.get("/profile-report", async (req: Request, res: Response) => {
             );
           }, 60000);
         });
+        if (!page.isClosed()) {
+          await page.close();
+        }
+        await browser.close();
         res.send({ followingData, profileData, success: true });
       }
     } catch (error) {
