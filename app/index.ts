@@ -19,7 +19,7 @@ dotenv.config();
 const app: Express = express();
 const port = process.env.PORT || 3000;
 
-// app.use(cors());
+app.use(cors());
 app.use(express.json());
 
 app.get("/timeout-error", async (req: Request, res: Response) => {
@@ -47,6 +47,22 @@ app.get("/proxy-image/:url", async (req, res) => {
   }
 });
 
+app.get("/api-proxy", async (req, res) => {
+  const { serId } = req.query;
+
+  try {
+    const serverUrl = decodeURIComponent(serId as string);
+
+    console.log("serverur; ", serverUrl);
+
+    const response = await axios.get(serverUrl);
+
+    res.send(response.data);
+  } catch (error) {
+    console.log("errir :", error);
+    res.status(500).send(error);
+  }
+});
 const requestQueue: (() => Promise<void>)[] = [];
 let isProcessing = false;
 
