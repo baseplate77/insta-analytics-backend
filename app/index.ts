@@ -19,8 +19,84 @@ dotenv.config();
 const app: Express = express();
 const port = process.env.PORT || 3000;
 
-// app.use(cors());
+app.use(cors());
 app.use(express.json());
+
+app.get("/test-api", async (req: Request, res: Response) => {
+  const headers = {
+    accept: "application/json, text/plain, */*",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
+    authorization: "Bearer",
+    "content-type": "application/json",
+    cookie:
+      "_pubCommonId=2328c0ff-c43b-4430-ba9c-331f269903b3; _pubCommonId_last=Mon%2C%2012%20Aug%202024%2017%3A25%3A46%20GMT; _ga=GA1.1.1328866123.1723568330; _fbp=fb.1.1723799379166.99011540766315669; euconsent-v2=CQEKnMAQEKnMAFgAGAENBDFsAP_gAAAAABCYKYtV_G__bXlr8X736ftkeY1f9_h77sQxBhfJk-4FzLvW_JwX32EzNA36tqYKmRIAu3bBIQNlGJDUTVCgaogVrzDMak2coTtKJ6BkiFMRe2dYCF5vmwtj-QKY5vr_91d52R-t7dr83dzyz4Vnv3a9_-a1WJCdA5-tDfv_bROb-9IO9_x8v4v8_N_rE2_eT1l_tevp7D9-ctv7_XX-9_fff79Pn_-uB_--CmMAAAoJABgACCmIaADAAEFMREAGAAIKYioAMAAQUxGQAYAAgpiOgAwABBTEhABgACCmJKADAAEFMSkAGAAIKYloAMAAQUxA.f_wAAAAAAAAA; pubtech-cmp-pcstring=0-XXX; customerly_jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL2N1c3RvbWVybHkuaW8iLCJqdGkiOiI2NzM2NTdkYS03NTA2LTExZWYtYTRiOC0wMjQyMGEwMDA0ODMiLCJpYXQiOjE3MjY1ODU1ODMuMzY0MzgyLCJuYmYiOjE3MjY1ODU1ODMuMzY0Mzg4LCJleHAiOjI3MDQ4MDYzODMuMzY0MzkxLCJ0eXBlIjoxLCJhcHAiOiJlZmRjYjBkMCIsImlkIjpudWxsfQ.KuXJzcHo9Coi7d26Ck9on1BIE1QXedpy6UlLVUhT-0M; _ga_0J1FMG9L1D=GS1.1.1726593606.42.0.1726593606.60.0.0; ph_phc_THFAwcb3R4ZOve3H57FOVcLSadC7Rotm5U9xodePfG9_posthog=%7B%22distinct_id%22%3A%220191479e-9ba9-7dc6-b046-2f91e7434af1%22%2C%22%24sesid%22%3A%5B1726593606789%2C%22019200ff-a481-7d5d-b605-ba4662855feb%22%2C1726593606785%5D%7D",
+    origin: "https://app.notjustanalytics.com",
+    priority: "u=1, i",
+    referer: "https://app.notjustanalytics.com/",
+    "sec-ch-ua": '"Not;A=Brand";v="24", "Chromium";v="128"',
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "macOS",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-site",
+    "user-agent":
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+    "x-api-key": "gToDzXoUj64ro1FlXfAdy16yBvPTIGm84yXfl8f9",
+  };
+
+  const payload = {
+    context: {
+      client: {
+        clientName: "WEB",
+        clientVersion: "2.20210909.07.00",
+      },
+    },
+    target: {
+      videoId: "VIDEO_ID", // The video ID you want to interact with
+    },
+  };
+  const url =
+    "https://api.notjustanalytics.com/profile/ig/analyze/flutteruidev";
+
+  try {
+    const response = await axios({
+      method: "POST",
+      url: url,
+      headers: {
+        Accept: "application/json, text/plain, */*",
+        "Accept-Encoding": "gzip, deflate, br, zstd",
+        "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8",
+        Authorization: "Bearer YOUR_VALID_ACCESS_TOKEN", // Replace with the actual token
+        Cookie:
+          "_pubCommonId=2328c0ff-c43b-4430-ba9c-331f269903b3; _pubCommonId_last=Mon%2C%2012%20Aug%202024%2017%3A25%3A46%20GMT; _ga=GA1.1.1328866123.1723568330; _fbp=fb.1.1723799379166.99011540766315669; euconsent-v2=CQEKnMAQEKnMAFgAGAENBDFsAP_gAAAAABCYKYtV_G__bXlr8X736ftkeY1f9_h77sQxBhfJk-4FzLvW_JwX32EzNA36tqYKmRIAu3bBIQNlGJDUTVCgaogVrzDMak2coTtKJ6BkiFMRe2dYCF5vmwtj-QKY5vr_91d52R-t7dr83dzyz4Vnv3a9_-a1WJCdA5-tDfv_bROb-9IO9_x8v4v8_N_rE2_eT1l_tevp7D9-ctv7_XX-9_fff79Pn_-uB_--CmMAAAoJABgACCmIaADAAEFMREAGAAIKYioAMAAQUxGQAYAAgpiOgAwABBTEhABgACCmJKADAAEFMSkAGAAIKYloAMAAQUxA.f_wAAAAAAAAA; pubtech-cmp-pcstring=0-XXX; customerly_jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL2N1c3RvbWVybHkuaW8iLCJqdGkiOiI2NzM2NTdkYS03NTA2LTExZWYtYTRiOC0wMjQyMGEwMDA0ODMiLCJpYXQiOjE3MjY1ODU1ODMuMzY0MzgyLCJuYmYiOjE3MjY1ODU1ODMuMzY0Mzg4LCJleHAiOjI3MDQ4MDYzODMuMzY0MzkxLCJ0eXBlIjoxLCJhcHAiOiJlZmRjYjBkMCIsImlkIjpudWxsfQ.KuXJzcHo9Coi7d26Ck9on1BIE1QXedpy6UlLVUhT-0M; _ga_0J1FMG9L1D=GS1.1.1726593606.42.0.1726593606.60.0.0; ph_phc_THFAwcb3R4ZOve3H57FOVcLSadC7Rotm5U9xodePfG9_posthog=%7B%22distinct_id%22%3A%220191479e-9ba9-7dc6-b046-2f91e7434af1%22%2C%22%24sesid%22%3A%5B1726593606789%2C%22019200ff-a481-7d5d-b605-ba4662855feb%22%2C1726593606785%5D%7D",
+        Dnt: "1",
+        Origin: "https://app.notjustanalytics.com",
+        Referer: "https://app.notjustanalytics.com/",
+        "Sec-Ch-Ua": '"Not;A=Brand";v="24", "Chromium";v="128"',
+        "Sec-Ch-Ua-Mobile": "?0",
+        "Sec-Ch-Ua-Platform": '"macOS"',
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-site",
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+        "X-Api-Key": "gToDzXoUj64ro1FlXfAdy16yBvPTIGm84yXfl8f9",
+      },
+      data: {
+        cf_turnstile_response:
+          "0.ZIyCFkPWWEMKoGE4J_y1uulBgTRubcb-kLLK1ASTcuk3UxzEqhgIrafjHK897dKRtfQur-SJxcj_gICMh_rWEdlxyLbHHtxdMOZDskoupfbubz7imXr8cNWEa17kaSG9_WoWBrJKo0Dit3gMjfHwKfknS6e3JD7DYLFl7nutTSg4wMiLh6Iwn5pa6z9F50DjcdpdziqB5JlTcoO_PCGEy65SblZRsxQ345fw5P8yafiO_mL-nLg4ze3PahCMc8v29K_wv79N39Txj44Lk1GrvkXqiAI2RwjYTVocuQRkcySJ7OeYQC95Ol60JFoXnJ8OdOWIc8QIseUDbArxkfSpenrabgdToxIL0AFFboZHdu85k4M32VoVInL_wpf7xLoATvOOI2BarozXbNDpiWCuvH3TiRFU0QTlcclaK1EbPzJ_mQv4viAfSbZ96GyuryTo6h1A5MolHHmwjHzT2qGKfqwYlIU8unKhEC0NeUTeEhPuoPX5-OR7eVacCdIhTsH9FmXTctgMdM4k6P8cXv6tVk3fZlI8aFi1Pmieg0UOUFR_IEozpyuSLS_PPXIJbrJDbXHV3Gs_4Y3i8nYzdJ7PKxk6WebgA7TBSL1K2U5rxmUmnzDUD3diXHTTVz75B7vpNo4_XlCn5EF5wVxYc3tKnVxZf0GinvL6MpXa7bLFLgs8Z7kK51TfCmXd5ogQy31D1xclitlNM_F1jIq2JN7QjwGyNh-LBqE_BymAd0CvW6rgocTsKePlX_Lcmz026dOp.IXcFRDb-ennuUv3Ash60gQ.415c4cca0e59cf1dac72c5d3bf16aa188ec4108e3d06f7487139c6afab34d232",
+        html: "",
+        timezone: "Asia/Calcutta",
+      },
+    });
+
+    // Output the response data
+    console.log("Response Data:", response.data);
+  } catch (error) {
+    console.error("Error making POST request:", error);
+  }
+});
 
 app.get("/timeout-error", async (req: Request, res: Response) => {
   let { time } = req.query;
@@ -63,7 +139,9 @@ app.get("/api-proxy", async (req, res) => {
     res.status(500).send(error);
   }
 });
+
 const requestQueue: (() => Promise<void>)[] = [];
+
 let isProcessing = false;
 
 const processQueue = async () => {
@@ -74,6 +152,7 @@ const processQueue = async () => {
   isProcessing = false;
   processQueue();
 };
+
 app.post(
   "/generate-follower-count-report",
   async (req: Request, res: Response) => {
@@ -296,9 +375,10 @@ app.get("/profile-report", async (req: Request, res: Response) => {
   requestQueue.push(async () => {
     const { username } = req.query;
     console.log("username :", username);
-
+    // res.send(sampleResponse);
+    // return;
+    const { page, browser } = await getReaLBrowser();
     try {
-      const { page, browser } = await getReaLBrowser();
       // let { connect } = await import_("puppeteer-real-browser");
       // const { page, browser } = await connect({
       //   headless: "auto",
@@ -396,15 +476,17 @@ app.get("/profile-report", async (req: Request, res: Response) => {
             );
           }, 60000);
         });
-        if (!page.isClosed()) {
-          await page.close();
-        }
-        await browser.close();
+
         res.send({ followingData, profileData, success: true });
       }
     } catch (error) {
       console.log("error :", error);
       res.send({ followingData: {}, profileData: {}, success: false });
+    } finally {
+      if (!page.isClosed()) {
+        await page.close();
+      }
+      await browser.close();
     }
   });
 
