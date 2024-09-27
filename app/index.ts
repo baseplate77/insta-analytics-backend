@@ -487,6 +487,8 @@ app.get("/profile-report", async (req: Request, res: Response) => {
         await page.close();
       }
       await browser.close();
+
+      console.log("browser close");
     }
   });
 
