@@ -223,6 +223,8 @@ app.post(
                     const data = await response.json();
                     profileData = data;
                     followerData[currentIndex] = profileData.followers;
+                    console.log("follower :", profileData.followers);
+                    await browser.close();
                   } catch (err) {
                     console.log("Response Body is not JSON.");
                   }
@@ -248,8 +250,8 @@ app.post(
                 ""
               )}`,
               {
-                waitUntil: ["domcontentloaded", "networkidle2"],
-                timeout: 60000,
+                waitUntil: ["networkidle2"],
+                timeout: 60_000,
               }
             );
 
