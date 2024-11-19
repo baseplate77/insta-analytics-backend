@@ -295,9 +295,9 @@ app.post(
             // console.log("profile data :", profileData.followers);
 
             // followerData.push(profileData.followers);
-            if (!page.isClosed()) {
-              await page.close();
-            }
+            // if (!page.isClosed()) {
+            //   await page.close();
+            // }
             await browser.close();
           }
 
