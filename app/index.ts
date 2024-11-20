@@ -186,119 +186,123 @@ app.post(
       res.send({ success: true });
 
       for (let i = 0; i < userID.length; i += batchSize) {
-        console.log("ii:", i);
+        try {
+          console.log("ii:", i);
 
-        let tempUserId = [...userID];
+          let tempUserId = [...userID];
 
-        let userIds = tempUserId.splice(i, batchSize);
-        console.log("userList :", userIds);
+          let userIds = tempUserId.splice(i, batchSize);
+          console.log("userList :", userIds);
 
-        let promises = userIds.map(async (username, index) => {
-          let currentIndex = index + (i / batchSize) * batchSize;
+          let promises = userIds.map(async (username, index) => {
+            let currentIndex = index + (i / batchSize) * batchSize;
 
-          console.log("current Index :", currentIndex);
-          // cherissehaynessofficial
-          const profileDetailAPI = `https://api.notjustanalytics.com/profile/ig/analyze/${username.replace(
-            /\s+/g,
-            ""
-          )}`;
+            console.log("current Index :", currentIndex);
+            // cherissehaynessofficial
+            const profileDetailAPI = `https://api.notjustanalytics.com/profile/ig/analyze/${username.replace(
+              /\s+/g,
+              ""
+            )}`;
 
-          const { page, browser } = await getReaLBrowser();
-          let profileData: any = undefined;
+            const { page, browser } = await getReaLBrowser();
+            let profileData: any = undefined;
 
-          page.on("response", async (response: any) => {
-            const url = response.url() as string;
-            const status = response.status();
-            try {
-              if (
-                ["xhr", "fetch"].includes(response.request().resourceType())
-              ) {
-                if (url.includes(profileDetailAPI)) {
-                  if (status === 404) throw "profile not found";
-                  console.log(`URL: ${url}`);
-                  console.log(`Status: ${status}`);
+            page.on("response", async (response: any) => {
+              const url = response.url() as string;
+              const status = response.status();
+              try {
+                if (
+                  ["xhr", "fetch"].includes(response.request().resourceType())
+                ) {
+                  if (url.includes(profileDetailAPI)) {
+                    if (status === 404) throw "profile not found";
+                    console.log(`URL: ${url}`);
+                    console.log(`Status: ${status}`);
 
-                  try {
-                    const data = await response.json();
-                    profileData = data;
-                    followerData[currentIndex] = profileData.followers;
-                    console.log("follower :", profileData.followers);
-                    if (!page.isClosed()) {
-                      await page.close();
+                    try {
+                      const data = await response.json();
+                      profileData = data;
+                      followerData[currentIndex] = profileData.followers;
+                      console.log("follower :", profileData.followers);
+                      if (!page.isClosed()) {
+                        await page.close();
+                      }
+                      await browser.close();
+                      // await page.close();
+                      // await browser.close();
+                    } catch (err) {
+                      console.log("Response Body is not JSON.");
                     }
-                    await browser.close();
-                    // await page.close();
-                    // await browser.close();
-                  } catch (err) {
-                    console.log("Response Body is not JSON.");
-                  }
 
-                  // // remove for production
-                  // if (profileData !== undefined) {
-                  //   await delay(1000);
-                  //   await page.close();
-                  // }
+                    // // remove for production
+                    // if (profileData !== undefined) {
+                    //   await delay(1000);
+                    //   await page.close();
+                    // }
+                  }
+                }
+              } catch (error) {
+                console.log("profile data not found, setting it to 0");
+                profileData = { followers: -1 };
+                followerData[currentIndex] = -1;
+              }
+            });
+
+            try {
+              await page.goto(
+                `https://app.notjustanalytics.com/analysis/${username.replace(
+                  /\s+/g,
+                  ""
+                )}`,
+                {
+                  waitUntil: ["networkidle2"],
+                  timeout: 60_000,
+                }
+              );
+
+              console.log("Page loaded successfully");
+            } catch (error) {
+              console.log("error in page navigation");
+            } finally {
+              try {
+                await new Promise<void>((resolve, reject) => {
+                  const checkProfileData = setInterval(() => {
+                    console.log("waiting for profile data :", username);
+
+                    if (profileData !== undefined) {
+                      clearInterval(checkProfileData);
+                      resolve();
+                    }
+                  }, 1000); //
+
+                  // Break out of the loop after 1 minute
+                  setTimeout(() => {
+                    clearInterval(checkProfileData);
+                    reject(
+                      new Error(
+                        "Timeout: Profile data not received within 1 minute"
+                      )
+                    );
+                  }, 90000);
+                });
+              } catch (error) {
+                console.log("error :", error);
+              } finally {
+                console.log("isClose :", page.isClosed());
+                if (!page.isClosed()) {
+                  await page.close();
+                  await browser.close();
                 }
               }
-            } catch (error) {
-              console.log("profile data not found, setting it to 0");
-              profileData = { followers: -1 };
-              followerData[currentIndex] = -1;
             }
+
+            // if (profileData === undefined) throw "profile not found";
           });
 
-          try {
-            await page.goto(
-              `https://app.notjustanalytics.com/analysis/${username.replace(
-                /\s+/g,
-                ""
-              )}`,
-              {
-                waitUntil: ["networkidle2"],
-                timeout: 60_000,
-              }
-            );
-
-            console.log("Page loaded successfully");
-          } catch (error) {
-            console.log("error in page navigation");
-          } finally {
-            try {
-              await new Promise<void>((resolve, reject) => {
-                const checkProfileData = setInterval(() => {
-                  console.log("waiting for profile data :", username);
-
-                  if (profileData !== undefined) {
-                    clearInterval(checkProfileData);
-                    resolve();
-                  }
-                }, 1000); //
-
-                // Break out of the loop after 1 minute
-                setTimeout(() => {
-                  clearInterval(checkProfileData);
-                  reject(
-                    new Error(
-                      "Timeout: Profile data not received within 1 minute"
-                    )
-                  );
-                }, 90000);
-              });
-            } catch (error) {
-              console.log("error :", error);
-            } finally {
-              console.log("isClose :", page.isClosed());
-              if (!page.isClosed()) {
-                await page.close();
-                await browser.close();
-              }
-            }
-          }
-
-          // if (profileData === undefined) throw "profile not found";
-        });
-
-        await Promise.all([...promises]);
+          await Promise.all([...promises]);
+        } catch (error) {
+          console.log("error in browser :", error);
+        }
       }
       console.log("completed :", followerData);
 
