@@ -180,7 +180,7 @@ app.post(
       userID = userID.filter((id) => id != null && id != undefined);
       // userID = userID.slice(40, 50);
       let followerData: any[] = new Array(userID.length);
-      let batchSize = 4;
+      let batchSize = 2;
       console.log("user :", userID);
       // process started
       res.send({ success: true });
