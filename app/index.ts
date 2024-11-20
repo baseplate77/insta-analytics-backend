@@ -224,7 +224,8 @@ app.post(
                     profileData = data;
                     followerData[currentIndex] = profileData.followers;
                     console.log("follower :", profileData.followers);
-                    await browser.close();
+                    // await page.close();
+                    // await browser.close();
                   } catch (err) {
                     console.log("Response Body is not JSON.");
                   }
@@ -295,10 +296,12 @@ app.post(
             // console.log("profile data :", profileData.followers);
 
             // followerData.push(profileData.followers);
-            // if (!page.isClosed()) {
-            //   await page.close();
-            // }
-            await browser.close();
+            if (!page.isClosed()) {
+              await page.close();
+            }
+            if (browser.isConnected()) {
+              await browser.close();
+            }
           }
 
           // if (profileData === undefined) throw "profile not found";
