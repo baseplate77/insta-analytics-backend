@@ -286,14 +286,13 @@ app.post(
               });
             } catch (error) {
               console.log("error :", error);
+            } finally {
+              console.log("isClose :", page.isClosed());
+              if (!page.isClosed()) {
+                await page.close();
+                await browser.close();
+              }
             }
-            // finally {
-            //   console.log("isClose :", page.isClosed());
-            //   // if (!page.isClosed()) {
-            //   //   await page.close();
-            //   // }
-            //   // await browser.close();
-            // }
           }
 
           // if (profileData === undefined) throw "profile not found";
