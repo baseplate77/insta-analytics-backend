@@ -203,7 +203,6 @@ app.post(
             ""
           )}`;
 
-          const profileNotFoundUrl = "profile-not-found";
           const { page, browser } = await getReaLBrowser();
           let profileData: any = undefined;
 
@@ -224,6 +223,10 @@ app.post(
                     profileData = data;
                     followerData[currentIndex] = profileData.followers;
                     console.log("follower :", profileData.followers);
+                    if (!page.isClosed()) {
+                      await page.close();
+                    }
+                    await browser.close();
                     // await page.close();
                     // await browser.close();
                   } catch (err) {
@@ -283,13 +286,14 @@ app.post(
               });
             } catch (error) {
               console.log("error :", error);
-            } finally {
-              console.log("isClose :", page.isClosed());
-              if (!page.isClosed()) {
-                await page.close();
-              }
-              await browser.close();
             }
+            // finally {
+            //   console.log("isClose :", page.isClosed());
+            //   // if (!page.isClosed()) {
+            //   //   await page.close();
+            //   // }
+            //   // await browser.close();
+            // }
           }
 
           // if (profileData === undefined) throw "profile not found";
