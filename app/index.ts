@@ -256,14 +256,6 @@ app.post(
               }
             );
 
-            // await page.waitForRequest((response: any) => {
-            //   let r = response.url().includes(profileDetailAPI);
-            //   // console.log("response :", r, "url :", response.url());
-
-            //   return r;
-            // });
-            // // infinte time wait
-            // await delay(5000);
             console.log("Page loaded successfully");
           } catch (error) {
             console.log("error in page navigation");
@@ -291,15 +283,11 @@ app.post(
               });
             } catch (error) {
               console.log("error :", error);
-            }
-            console.log("isClose :", page.isClosed());
-            // console.log("profile data :", profileData.followers);
-
-            // followerData.push(profileData.followers);
-            if (!page.isClosed()) {
-              await page.close();
-            }
-            if (browser.isConnected()) {
+            } finally {
+              console.log("isClose :", page.isClosed());
+              if (!page.isClosed()) {
+                await page.close();
+              }
               await browser.close();
             }
           }
