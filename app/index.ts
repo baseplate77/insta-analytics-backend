@@ -22,6 +22,34 @@ const port = process.env.PORT || 3000;
 // app.use(cors());
 app.use(express.json());
 
+app.get("/webhook-ig", async (req: Request, res: Response) => {
+  let mode = req.query["hub.mode"];
+  let challenge = req.query["hub.challenge"];
+  let verifyToken = req.query["hub.verify_token"];
+
+  console.log(
+    "instagram verification api  mode :",
+    mode,
+    "challenge :",
+    challenge
+  );
+  if (mode && verifyToken) {
+    if (mode === "subscribe") {
+      res.status(200).send(challenge);
+    } else {
+      res.status(403).send("failed");
+    }
+  } else {
+    res.status(500).send({ mode, verifyToken });
+  }
+});
+
+app.post("/webhook-ig", async (req: Request, res: Response) => {
+  let body = req.body;
+  console.log("body :", body);
+  res.status(200).send("event-recevied");
+});
+
 app.get("/test-api", async (req: Request, res: Response) => {
   const headers = {
     accept: "application/json, text/plain, */*",
@@ -153,12 +181,16 @@ const processQueue = async () => {
   processQueue();
 };
 
+// processing one follower report at a time
+
 app.post(
   "/generate-follower-count-report",
   async (req: Request, res: Response) => {
     const { docUrl } = req.body;
     try {
-      const response = await axios.get(docUrl, { responseType: "arraybuffer" });
+      const response = await axios.get(docUrl, {
+        responseType: "arraybuffer",
+      });
       const data = new Uint8Array(response.data);
       const workbook = xlsx.read(data, { type: "array" });
 
@@ -180,194 +212,197 @@ app.post(
       userID = userID.filter((id) => id != null && id != undefined);
       // userID = userID.slice(40, 50);
       let followerData: any[] = new Array(userID.length);
-      let batchSize = 3;
+      let batchSize = 2;
       console.log("user :", userID);
       // process started
       res.send({ success: true });
+      requestQueue.push(async () => {
+        for (let i = 0; i < userID.length; i += batchSize) {
+          try {
+            console.log("ii:", i);
 
-      for (let i = 0; i < userID.length; i += batchSize) {
-        try {
-          console.log("ii:", i);
+            let tempUserId = [...userID];
 
-          let tempUserId = [...userID];
+            let userIds = tempUserId.splice(i, batchSize);
+            console.log("userList :", userIds);
 
-          let userIds = tempUserId.splice(i, batchSize);
-          console.log("userList :", userIds);
+            let promises = userIds.map(async (username, index) => {
+              let currentIndex = index + (i / batchSize) * batchSize;
 
-          let promises = userIds.map(async (username, index) => {
-            let currentIndex = index + (i / batchSize) * batchSize;
+              console.log("current Index :", currentIndex);
+              // cherissehaynessofficial
+              const profileDetailAPI = `https://api.notjustanalytics.com/profile/ig/analyze/${username.replace(
+                /\s+/g,
+                ""
+              )}`;
 
-            console.log("current Index :", currentIndex);
-            // cherissehaynessofficial
-            const profileDetailAPI = `https://api.notjustanalytics.com/profile/ig/analyze/${username.replace(
-              /\s+/g,
-              ""
-            )}`;
+              const { page, browser } = await getReaLBrowser();
+              let profileData: any = undefined;
 
-            const { page, browser } = await getReaLBrowser();
-            let profileData: any = undefined;
+              page.on("response", async (response: any) => {
+                const url = response.url() as string;
+                const status = response.status();
+                try {
+                  if (
+                    ["xhr", "fetch"].includes(response.request().resourceType())
+                  ) {
+                    if (url.includes(profileDetailAPI)) {
+                      if (status === 404) throw "profile not found";
+                      console.log(`URL: ${url}`);
+                      console.log(`Status: ${status}`);
 
-            page.on("response", async (response: any) => {
-              const url = response.url() as string;
-              const status = response.status();
-              try {
-                if (
-                  ["xhr", "fetch"].includes(response.request().resourceType())
-                ) {
-                  if (url.includes(profileDetailAPI)) {
-                    if (status === 404) throw "profile not found";
-                    console.log(`URL: ${url}`);
-                    console.log(`Status: ${status}`);
-
-                    try {
-                      const data = await response.json();
-                      profileData = data;
-                      followerData[currentIndex] = profileData.followers;
-                      console.log("follower :", profileData.followers);
-                      if (!page.isClosed()) {
-                        await page.close();
+                      try {
+                        const data = await response.json();
+                        profileData = data;
+                        followerData[currentIndex] = profileData.followers;
+                        console.log("follower :", profileData.followers);
+                        if (!page.isClosed()) {
+                          await page.close();
+                        }
+                        await browser.close();
+                        // await page.close();
+                        // await browser.close();
+                      } catch (err) {
+                        console.log("Response Body is not JSON.");
                       }
-                      await browser.close();
-                      // await page.close();
-                      // await browser.close();
-                    } catch (err) {
-                      console.log("Response Body is not JSON.");
-                    }
 
-                    // // remove for production
-                    // if (profileData !== undefined) {
-                    //   await delay(1000);
-                    //   await page.close();
-                    // }
+                      // // remove for production
+                      // if (profileData !== undefined) {
+                      //   await delay(1000);
+                      //   await page.close();
+                      // }
+                    }
+                  }
+                } catch (error) {
+                  console.log("profile data not found, setting it to 0");
+                  profileData = { followers: -1 };
+                  followerData[currentIndex] = -1;
+                }
+              });
+
+              try {
+                await page.goto(
+                  `https://app.notjustanalytics.com/analysis/${username.replace(
+                    /\s+/g,
+                    ""
+                  )}`,
+                  {
+                    waitUntil: ["networkidle2"],
+                    timeout: 60_000,
+                  }
+                );
+
+                console.log("Page loaded successfully");
+              } catch (error) {
+                console.log("error in page navigation");
+              } finally {
+                try {
+                  await new Promise<void>((resolve, reject) => {
+                    const checkProfileData = setInterval(() => {
+                      console.log("waiting for profile data :", username);
+
+                      if (profileData !== undefined) {
+                        clearInterval(checkProfileData);
+                        resolve();
+                      }
+                    }, 1000); //
+
+                    // Break out of the loop after 1 minute
+                    setTimeout(() => {
+                      clearInterval(checkProfileData);
+                      reject(
+                        new Error(
+                          "Timeout: Profile data not received within 1 minute"
+                        )
+                      );
+                    }, 90000);
+                  });
+                } catch (error) {
+                  console.log("error :", error);
+                } finally {
+                  console.log("isClose :", page.isClosed());
+                  if (!page.isClosed()) {
+                    await page.close();
+                    await browser.close();
                   }
                 }
-              } catch (error) {
-                console.log("profile data not found, setting it to 0");
-                profileData = { followers: -1 };
-                followerData[currentIndex] = -1;
               }
+
+              // if (profileData === undefined) throw "profile not found";
             });
 
-            try {
-              await page.goto(
-                `https://app.notjustanalytics.com/analysis/${username.replace(
-                  /\s+/g,
-                  ""
-                )}`,
-                {
-                  waitUntil: ["networkidle2"],
-                  timeout: 60_000,
-                }
-              );
-
-              console.log("Page loaded successfully");
-            } catch (error) {
-              console.log("error in page navigation");
-            } finally {
-              try {
-                await new Promise<void>((resolve, reject) => {
-                  const checkProfileData = setInterval(() => {
-                    console.log("waiting for profile data :", username);
-
-                    if (profileData !== undefined) {
-                      clearInterval(checkProfileData);
-                      resolve();
-                    }
-                  }, 1000); //
-
-                  // Break out of the loop after 1 minute
-                  setTimeout(() => {
-                    clearInterval(checkProfileData);
-                    reject(
-                      new Error(
-                        "Timeout: Profile data not received within 1 minute"
-                      )
-                    );
-                  }, 90000);
-                });
-              } catch (error) {
-                console.log("error :", error);
-              } finally {
-                console.log("isClose :", page.isClosed());
-                if (!page.isClosed()) {
-                  await page.close();
-                  await browser.close();
-                }
-              }
-            }
-
-            // if (profileData === undefined) throw "profile not found";
-          });
-
-          await Promise.all([...promises]);
-        } catch (error) {
-          console.log("error in browser :", error);
+            await Promise.all([...promises]);
+          } catch (error) {
+            console.log("error in browser :", error);
+          }
         }
-      }
-      console.log("completed :", followerData);
+        console.log("completed :", followerData);
 
-      const workbook2 = xlsx.utils.book_new();
+        const workbook2 = xlsx.utils.book_new();
 
-      const xlsxData = [[...headerRow, "Followers", "Differenceß"]];
-      for (let i = 0; i < rows.length; i++) {
-        let row = rows[i];
-        let endGoal = row[endGoalIndex] ?? 0;
-        xlsxData.push([...row, followerData[i], endGoal - followerData[i]]);
-      }
+        const xlsxData = [[...headerRow, "Followers", "Differenceß"]];
+        for (let i = 0; i < rows.length; i++) {
+          let row = rows[i];
+          let endGoal = row[endGoalIndex] ?? 0;
+          xlsxData.push([...row, followerData[i], endGoal - followerData[i]]);
+        }
 
-      const worksheet = xlsx.utils.aoa_to_sheet(xlsxData);
-      xlsx.utils.book_append_sheet(workbook2, worksheet, "Report");
-      const fileName = `Report-${new Date()
-        .toLocaleDateString("en-GB")
-        .replace(/\//g, "-")}.xlsx`;
-      const filePath = path.join(__dirname, fileName);
+        const worksheet = xlsx.utils.aoa_to_sheet(xlsxData);
+        xlsx.utils.book_append_sheet(workbook2, worksheet, "Report");
+        const fileName = `Report-${new Date()
+          .toLocaleDateString("en-GB")
+          .replace(/\//g, "-")}.xlsx`;
+        const filePath = path.join(__dirname, fileName);
 
-      // if (!fs.existsSync(filePath)) {
-      // await touch(filePath, { force: true }, (err) => {
-      //   console.log("error in creating file :", err);
-      // });
-      // }
-      console.log("dir :", filePath);
+        // if (!fs.existsSync(filePath)) {
+        // await touch(filePath, { force: true }, (err) => {
+        //   console.log("error in creating file :", err);
+        // });
+        // }
+        console.log("dir :", filePath);
 
-      // fs.closeSync(fs.openSync(filePath, "w"));
+        // fs.closeSync(fs.openSync(filePath, "w"));
 
-      xlsx.writeFile(workbook2, filePath);
-      const bucket = amdin.storage().bucket();
-      await bucket.upload(filePath, {
-        destination: `reports/${fileName}`,
-        metadata: {
-          contentType:
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        },
+        xlsx.writeFile(workbook2, filePath);
+        const bucket = amdin.storage().bucket();
+        await bucket.upload(filePath, {
+          destination: `reports/${fileName}`,
+          metadata: {
+            contentType:
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          },
+        });
+
+        // Get the download URL
+        const file = bucket.file(`reports/${fileName}`);
+        const [url] = await file.getSignedUrl({
+          action: "read",
+          expires: "03-01-2500", // Set an appropriate expiration date
+        });
+
+        // send mail
+        console.log("url :", url);
+
+        await sendMail(
+          SENDER_EMAIL,
+          "report",
+          `
+          <div>
+            Report link
+            <a href="${url}">${fileName}</a>
+          </div>
+          `
+        );
+
+        fs.unlinkSync(filePath);
       });
-
-      // Get the download URL
-      const file = bucket.file(`reports/${fileName}`);
-      const [url] = await file.getSignedUrl({
-        action: "read",
-        expires: "03-01-2500", // Set an appropriate expiration date
-      });
-
-      // send mail
-      console.log("url :", url);
-
-      await sendMail(
-        SENDER_EMAIL,
-        "report",
-        `
-        <div>
-          Report link
-          <a href="${url}">${fileName}</a>
-        </div>
-        `
-      );
-
-      fs.unlinkSync(filePath);
       // res.send({ followerData, success: true });
     } catch (error) {
       console.error("Error reading XLSX file:", error);
       // res.status(500).send("Error reading XLSX file");
     }
+
+    processQueue();
   }
 );
 
