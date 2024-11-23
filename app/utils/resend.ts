@@ -3,7 +3,7 @@ import { Resend } from "resend";
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const sendMail = async (
-  to: string,
+  to: string | string[],
   subject: string,
   msg: string,
   from = "Instaanalyzer <noreply@instaanalyser.com>"
@@ -11,7 +11,7 @@ export const sendMail = async (
   try {
     const data = await resend.emails.send({
       from: from,
-      to: [to],
+      to: Array.isArray(to) ? to : [to],
       subject: subject,
       html: msg,
     });
