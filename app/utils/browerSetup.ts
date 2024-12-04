@@ -147,19 +147,20 @@ class GlobalBroswer {
     //     interceptResolutionPriority: DEFAULT_INTERCEPT_RESOLUTION_PRIORITY,
     //   })
     // );
-    const randomProxy = proxyList[Math.floor(Math.random() * proxyList.length)];
-
-    // console.log("random proxy :", randomProxy);
+    // const randomProxy = proxyList[Math.floor(Math.random() * proxyList.length)];
 
     this.browser = await puppeteer.launch({
-      // executablePath: "/usr/bin/google-chrome",
-      ignoreHTTPSErrors: true,
-      targetFilter: (target) => !!target.url(),
+      // executablePath:
+      //   process.env.NODE_ENV !== "development"
+      //     ? "/usr/bin/google-chrome"
+      //     : undefined,
+      // ignoreHTTPSErrors: true,
 
       protocolTimeout: 0,
       timeout: 0,
       // headless: true,
-      headless: false,
+      // headless: false,
+      // headless: process.env.NODE_ENV !== "development",
       args: [
         "--disable-gpu",
         "--disable-setuid-sandbox",
@@ -170,8 +171,7 @@ class GlobalBroswer {
         "--disable-features=IsolateOrigins",
         "--disable-site-isolation-trials",
         "--disable-blink-features=AutomationControlled",
-
-        // `--proxy-server=${randomProxy}`,
+        // "--proxy-server=206.189.135.6:3128",
 
         // "--disable-gpu",
         // "--disable-dev-shm-usage",

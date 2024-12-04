@@ -1,7 +1,11 @@
 import express, { Express, Request, Response } from "express";
 import dotenv from "dotenv";
 import delay from "./utils/delay";
-import { getReaLBrowser, puppeteerManager } from "./utils/browerSetup";
+import {
+  getReaLBrowser,
+  globalBrowser,
+  puppeteerManager,
+} from "./utils/browerSetup";
 import { addMockImage } from "./utils/imageBlocker";
 import cors from "cors";
 import fs from "fs";
@@ -13,6 +17,7 @@ import path from "path";
 import { amdin } from "./utils/firebase";
 import { sendMail } from "./utils/resend";
 import { sampleResponse, SENDER_EMAIL } from "./constants";
+import getUserDetails from "./utils/getUserDetails";
 // @ts-ignore
 dotenv.config();
 
@@ -33,21 +38,20 @@ app.get("/webhook-ig", async (req: Request, res: Response) => {
     "challenge :",
     challenge
   );
-  if (mode && verifyToken) {
-    if (mode === "subscribe") {
-      res.status(200).send(challenge);
-    } else {
-      res.status(403).send("failed");
-    }
+  if (mode === "subscribe") {
+    console.log("Webhook verified");
+    res.status(200).send(challenge);
   } else {
-    res.status(500).send({ mode, verifyToken });
+    res.sendStatus(403);
   }
 });
 
 app.post("/webhook-ig", async (req: Request, res: Response) => {
   let body = req.body;
-  console.log("body :", body);
-  res.status(200).send("event-recevied");
+  console.log("Webhook event received:", req.body);
+  console.log("changes :", body["entry"][0]["changes"][0]);
+
+  res.sendStatus(200);
 });
 
 app.get("/test-api", async (req: Request, res: Response) => {
@@ -211,7 +215,7 @@ app.post(
       let userID = rows.map((d: string[]) => d[userIdRowIndex]);
       userID = userID.filter((id) => id != null && id != undefined);
       // userID = userID.slice(40, 50);
-      let followerData: any[] = new Array(userID.length);
+      let followerData: any[] = new Array(userID.length).fill(0);
       let batchSize = 2;
       console.log("user :", userID);
       // process started
@@ -236,97 +240,114 @@ app.post(
                 ""
               )}`;
 
-              const { page, browser } = await getReaLBrowser();
+              let browser = await globalBrowser.initBrower();
               let profileData: any = undefined;
-
-              page.on("response", async (response: any) => {
-                const url = response.url() as string;
-                const status = response.status();
-                try {
-                  if (
-                    ["xhr", "fetch"].includes(response.request().resourceType())
-                  ) {
-                    if (url.includes(profileDetailAPI)) {
-                      if (status === 404) throw "profile not found";
-                      console.log(`URL: ${url}`);
-                      console.log(`Status: ${status}`);
-
-                      try {
-                        const data = await response.json();
-                        profileData = data;
-                        followerData[currentIndex] = profileData.followers;
-                        console.log("follower :", profileData.followers);
-                        if (!page.isClosed()) {
-                          await page.close();
-                        }
-                        await browser.close();
-                        // await page.close();
-                        // await browser.close();
-                      } catch (err) {
-                        console.log("Response Body is not JSON.");
-                      }
-
-                      // // remove for production
-                      // if (profileData !== undefined) {
-                      //   await delay(1000);
-                      //   await page.close();
-                      // }
-                    }
-                  }
-                } catch (error) {
-                  console.log("profile data not found, setting it to 0");
-                  profileData = { followers: -1 };
-                  followerData[currentIndex] = -1;
-                }
-              });
-
               try {
-                await page.goto(
-                  `https://app.notjustanalytics.com/analysis/${username.replace(
-                    /\s+/g,
-                    ""
-                  )}`,
-                  {
-                    waitUntil: ["networkidle2"],
-                    timeout: 60_000,
-                  }
-                );
+                let profileUrl = `https://www.instagram.com/${username}/`;
+                console.log("[rofile :", profileUrl);
 
-                console.log("Page loaded successfully");
+                profileData = await getUserDetails(profileUrl, browser);
+
+                followerData[currentIndex] = profileData["follower_count"];
+                console.log("follower data :", followerData);
               } catch (error) {
-                console.log("error in page navigation");
+                console.log("error getting profile data :", error);
               } finally {
-                try {
-                  await new Promise<void>((resolve, reject) => {
-                    const checkProfileData = setInterval(() => {
-                      console.log("waiting for profile data :", username);
-
-                      if (profileData !== undefined) {
-                        clearInterval(checkProfileData);
-                        resolve();
-                      }
-                    }, 1000); //
-
-                    // Break out of the loop after 1 minute
-                    setTimeout(() => {
-                      clearInterval(checkProfileData);
-                      reject(
-                        new Error(
-                          "Timeout: Profile data not received within 1 minute"
-                        )
-                      );
-                    }, 90000);
-                  });
-                } catch (error) {
-                  console.log("error :", error);
-                } finally {
-                  console.log("isClose :", page.isClosed());
-                  if (!page.isClosed()) {
-                    await page.close();
-                    await browser.close();
-                  }
-                }
+                await browser.close();
+                await delay(2000);
               }
+
+              // const { page, browser } = await getReaLBrowser();
+
+              // page.on("response", async (response: any) => {
+              //   const url = response.url() as string;
+              //   const status = response.status();
+              //   try {
+              //     if (
+              //       ["xhr", "fetch"].includes(response.request().resourceType())
+              //     ) {
+              //       if (url.includes(profileDetailAPI)) {
+              //         if (status === 404) throw "profile not found";
+              //         console.log(`URL: ${url}`);
+              //         console.log(`Status: ${status}`);
+
+              //         try {
+              //           const data = await response.json();
+              //           profileData = data;
+              //           followerData[currentIndex] = profileData.followers;
+              //           console.log("follower :", profileData.followers);
+              //           if (!page.isClosed()) {
+              //             await page.close();
+              //           }
+              //           await browser.close();
+              //           // await page.close();
+              //           // await browser.close();
+              //         } catch (err) {
+              //           console.log("Response Body is not JSON.");
+              //         }
+
+              //         // // remove for production
+              //         // if (profileData !== undefined) {
+              //         //   await delay(1000);
+              //         //   await page.close();
+              //         // }
+              //       }
+              //     }
+              //   } catch (error) {
+              //     console.log("profile data not found, setting it to 0");
+              //     profileData = { followers: -1 };
+              //     followerData[currentIndex] = -1;
+              //   }
+              // });
+
+              // try {
+              //   await page.goto(
+              //     `https://app.notjustanalytics.com/analysis/${username.replace(
+              //       /\s+/g,
+              //       ""
+              //     )}`,
+              //     {
+              //       waitUntil: ["networkidle2"],
+              //       timeout: 60_000,
+              //     }
+              //   );
+
+              //   console.log("Page loaded successfully");
+              // } catch (error) {
+              //   console.log("error in page navigation");
+              // } finally {
+              //   try {
+              //     await new Promise<void>((resolve, reject) => {
+              //       const checkProfileData = setInterval(() => {
+              //         console.log("waiting for profile data :", username);
+
+              //         if (profileData !== undefined) {
+              //           clearInterval(checkProfileData);
+              //           resolve();
+              //         }
+              //       }, 1000); //
+
+              //       // Break out of the loop after 1 minute
+              //       setTimeout(() => {
+              //         clearInterval(checkProfileData);
+              //         reject(
+              //           new Error(
+              //             "Timeout: Profile data not received within 1 minute"
+              //           )
+              //         );
+              //       }, 60000);
+              //     });
+              //   } catch (error) {
+              //     console.log("error :", error);
+              //   } finally {
+              //     console.log("isClose :", page.isClosed());
+              //     if (!page.isClosed()) {
+              //       await page.close();
+              //       await browser.close();
+              //       await delay(5000);
+              //     }
+              //   }
+              // }
 
               // if (profileData === undefined) throw "profile not found";
             });
