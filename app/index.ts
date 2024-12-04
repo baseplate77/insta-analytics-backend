@@ -24,7 +24,7 @@ dotenv.config();
 const app: Express = express();
 const port = process.env.PORT || 3000;
 
-// app.use(cors());
+app.use(cors());
 app.use(express.json());
 
 app.get("/webhook-ig", async (req: Request, res: Response) => {
@@ -239,117 +239,117 @@ app.post(
                 /\s+/g,
                 ""
               )}`;
-
-              let browser = await globalBrowser.initBrower();
               let profileData: any = undefined;
-              try {
-                let profileUrl = `https://www.instagram.com/${username}/`;
-                console.log("[rofile :", profileUrl);
 
-                profileData = await getUserDetails(profileUrl, browser);
-
-                followerData[currentIndex] = profileData["follower_count"];
-                console.log("follower data :", followerData);
-              } catch (error) {
-                console.log("error getting profile data :", error);
-              } finally {
-                await browser.close();
-                await delay(2000);
-              }
-
-              // const { page, browser } = await getReaLBrowser();
-
-              // page.on("response", async (response: any) => {
-              //   const url = response.url() as string;
-              //   const status = response.status();
-              //   try {
-              //     if (
-              //       ["xhr", "fetch"].includes(response.request().resourceType())
-              //     ) {
-              //       if (url.includes(profileDetailAPI)) {
-              //         if (status === 404) throw "profile not found";
-              //         console.log(`URL: ${url}`);
-              //         console.log(`Status: ${status}`);
-
-              //         try {
-              //           const data = await response.json();
-              //           profileData = data;
-              //           followerData[currentIndex] = profileData.followers;
-              //           console.log("follower :", profileData.followers);
-              //           if (!page.isClosed()) {
-              //             await page.close();
-              //           }
-              //           await browser.close();
-              //           // await page.close();
-              //           // await browser.close();
-              //         } catch (err) {
-              //           console.log("Response Body is not JSON.");
-              //         }
-
-              //         // // remove for production
-              //         // if (profileData !== undefined) {
-              //         //   await delay(1000);
-              //         //   await page.close();
-              //         // }
-              //       }
-              //     }
-              //   } catch (error) {
-              //     console.log("profile data not found, setting it to 0");
-              //     profileData = { followers: -1 };
-              //     followerData[currentIndex] = -1;
-              //   }
-              // });
-
+              // let browser = await globalBrowser.initBrower();
               // try {
-              //   await page.goto(
-              //     `https://app.notjustanalytics.com/analysis/${username.replace(
-              //       /\s+/g,
-              //       ""
-              //     )}`,
-              //     {
-              //       waitUntil: ["networkidle2"],
-              //       timeout: 60_000,
-              //     }
-              //   );
+              //   let profileUrl = `https://www.instagram.com/${username}/`;
+              //   console.log("profile :", profileUrl);
 
-              //   console.log("Page loaded successfully");
+              //   profileData = await getUserDetails(profileUrl, browser);
+
+              //   followerData[currentIndex] = profileData["follower_count"];
+              //   console.log("follower data :", followerData);
               // } catch (error) {
-              //   console.log("error in page navigation");
+              //   console.log("error getting profile data :", error);
               // } finally {
-              //   try {
-              //     await new Promise<void>((resolve, reject) => {
-              //       const checkProfileData = setInterval(() => {
-              //         console.log("waiting for profile data :", username);
-
-              //         if (profileData !== undefined) {
-              //           clearInterval(checkProfileData);
-              //           resolve();
-              //         }
-              //       }, 1000); //
-
-              //       // Break out of the loop after 1 minute
-              //       setTimeout(() => {
-              //         clearInterval(checkProfileData);
-              //         reject(
-              //           new Error(
-              //             "Timeout: Profile data not received within 1 minute"
-              //           )
-              //         );
-              //       }, 60000);
-              //     });
-              //   } catch (error) {
-              //     console.log("error :", error);
-              //   } finally {
-              //     console.log("isClose :", page.isClosed());
-              //     if (!page.isClosed()) {
-              //       await page.close();
-              //       await browser.close();
-              //       await delay(5000);
-              //     }
-              //   }
+              //   await browser.close();
+              //   await delay(2000);
               // }
 
-              // if (profileData === undefined) throw "profile not found";
+              const { page, browser } = await getReaLBrowser();
+
+              page.on("response", async (response: any) => {
+                const url = response.url() as string;
+                const status = response.status();
+                try {
+                  if (
+                    ["xhr", "fetch"].includes(response.request().resourceType())
+                  ) {
+                    if (url.includes(profileDetailAPI)) {
+                      if (status === 404) throw "profile not found";
+                      console.log(`URL: ${url}`);
+                      console.log(`Status: ${status}`);
+
+                      try {
+                        const data = await response.json();
+                        profileData = data;
+                        followerData[currentIndex] = profileData.followers;
+                        console.log("follower :", profileData.followers);
+                        if (!page.isClosed()) {
+                          await page.close();
+                        }
+                        await browser.close();
+                        // await page.close();
+                        // await browser.close();
+                      } catch (err) {
+                        console.log("Response Body is not JSON.");
+                      }
+
+                      // // remove for production
+                      // if (profileData !== undefined) {
+                      //   await delay(1000);
+                      //   await page.close();
+                      // }
+                    }
+                  }
+                } catch (error) {
+                  console.log("profile data not found, setting it to 0");
+                  profileData = { followers: -1 };
+                  followerData[currentIndex] = -1;
+                }
+              });
+
+              try {
+                await page.goto(
+                  `https://app.notjustanalytics.com/analysis/${username.replace(
+                    /\s+/g,
+                    ""
+                  )}`,
+                  {
+                    waitUntil: ["networkidle2"],
+                    timeout: 60_000,
+                  }
+                );
+
+                console.log("Page loaded successfully");
+              } catch (error) {
+                console.log("error in page navigation");
+              } finally {
+                try {
+                  await new Promise<void>((resolve, reject) => {
+                    const checkProfileData = setInterval(() => {
+                      console.log("waiting for profile data :", username);
+
+                      if (profileData !== undefined) {
+                        clearInterval(checkProfileData);
+                        resolve();
+                      }
+                    }, 1000); //
+
+                    // Break out of the loop after 1 minute
+                    setTimeout(() => {
+                      clearInterval(checkProfileData);
+                      reject(
+                        new Error(
+                          "Timeout: Profile data not received within 1 minute"
+                        )
+                      );
+                    }, 60000);
+                  });
+                } catch (error) {
+                  console.log("error :", error);
+                } finally {
+                  console.log("isClose :", page.isClosed());
+                  if (!page.isClosed()) {
+                    await page.close();
+                    await browser.close();
+                    await delay(5000);
+                  }
+                }
+              }
+
+              if (profileData === undefined) throw "profile not found";
             });
 
             await Promise.all([...promises]);
