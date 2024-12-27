@@ -17,7 +17,6 @@ import path from "path";
 import { amdin } from "./utils/firebase";
 import { sendMail } from "./utils/resend";
 import { sampleResponse, SENDER_EMAIL } from "./constants";
-import getUserDetails from "./utils/getUserDetails";
 // @ts-ignore
 dotenv.config();
 
@@ -239,6 +238,11 @@ app.post(
                 /\s+/g,
                 ""
               )}`;
+
+              const instgramUrl = `https://www.instagram.com/${username.replace(
+                /\s+/g,
+                ""
+              )}`;
               let profileData: any = undefined;
 
               // let browser = await globalBrowser.initBrower();
@@ -262,50 +266,69 @@ app.post(
               page.on("response", async (response: any) => {
                 const url = response.url() as string;
                 const status = response.status();
-                try {
+                if (
+                  (response.request().resourceType() === "xhr" ||
+                    response.request().resourceType() === "fetch") &&
+                  url.includes("ww.instagram.com/graphql/query") &&
+                  profileData === undefined
+                ) {
+                  let data = await response.json();
+                  console.log("data :", data);
+                  followerData[currentIndex] = profileData.follower_count;
+
                   if (
-                    ["xhr", "fetch"].includes(response.request().resourceType())
+                    data["data"] !== undefined &&
+                    data["data"]["user"] !== undefined
                   ) {
-                    if (url.includes(profileDetailAPI)) {
-                      if (status === 404) throw "profile not found";
-                      console.log(`URL: ${url}`);
-                      console.log(`Status: ${status}`);
-
-                      try {
-                        const data = await response.json();
-                        profileData = data;
-                        followerData[currentIndex] = profileData.followers;
-                        console.log("follower :", profileData.followers);
-                        if (!page.isClosed()) {
-                          await page.close();
-                        }
-                        await browser.close();
-                        // await page.close();
-                        // await browser.close();
-                      } catch (err) {
-                        console.log("Response Body is not JSON.");
-                      }
-
-                      // // remove for production
-                      // if (profileData !== undefined) {
-                      //   await delay(1000);
-                      //   await page.close();
-                      // }
-                    }
+                    profileData = data["data"]["user"];
                   }
-                } catch (error) {
-                  console.log("profile data not found, setting it to 0");
-                  profileData = { followers: -1 };
-                  followerData[currentIndex] = -1;
                 }
+
+                // try {
+                //   if (
+                //     ["xhr", "fetch"].includes(response.request().resourceType())
+                //   ) {
+                //     if (url.includes(profileDetailAPI)) {
+                //       if (status === 404) throw "profile not found";
+                //       console.log(`URL: ${url}`);
+                //       console.log(`Status: ${status}`);
+
+                //       try {
+                //         const data = await response.json();
+                //         profileData = data;
+                //         followerData[currentIndex] = profileData.followers;
+                //         console.log("follower :", profileData.followers);
+                //         if (!page.isClosed()) {
+                //           await page.close();
+                //         }
+                //         await browser.close();
+                //         // await page.close();
+                //         // await browser.close();
+                //       } catch (err) {
+                //         console.log("Response Body is not JSON.");
+                //       }
+
+                //       // // remove for production
+                //       // if (profileData !== undefined) {
+                //       //   await delay(1000);
+                //       //   await page.close();
+                //       // }
+                //     }
+                //   }
+                // } catch (error) {
+                //   console.log("profile data not found, setting it to 0");
+                //   profileData = { followers: -1 };
+                //   followerData[currentIndex] = -1;
+                // }
               });
 
               try {
                 await page.goto(
-                  `https://app.notjustanalytics.com/analysis/${username.replace(
-                    /\s+/g,
-                    ""
-                  )}`,
+                  instgramUrl,
+                  // `https://app.notjustanalytics.com/analysis/${username.replace(
+                  //   /\s+/g,
+                  //   ""
+                  // )}`,
                   {
                     waitUntil: ["networkidle2"],
                     timeout: 60_000,
@@ -335,7 +358,7 @@ app.post(
                           "Timeout: Profile data not received within 1 minute"
                         )
                       );
-                    }, 60000);
+                    }, 10000);
                   });
                 } catch (error) {
                   console.log("error :", error);
