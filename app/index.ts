@@ -200,15 +200,16 @@ app.post(
       const sheetName = workbook.SheetNames[0];
       const sheet = workbook.Sheets[sheetName];
       const rows: any[] = xlsx.utils.sheet_to_json(sheet, { header: 1 });
+      console.log("rows", rows);
 
-      const userIdRowIndex = rows[0].findIndex(
-        (d: string) => d.toLowerCase() === "user id"
+      const userIdRowIndex = rows[0].findIndex((d: string) =>
+        d.toLowerCase().trim().includes("user")
       );
 
-      const endGoalIndex = rows[0].findIndex(
-        (d: string) => d.toLowerCase() === "end count"
+      const endGoalIndex = rows[0].findIndex((d: string) =>
+        d.toLowerCase().trim().includes("end")
       );
-      // console.log("userIdRowIndex", userIdRowIndex);
+      console.log("userIdRowIndex", userIdRowIndex, endGoalIndex);
 
       const headerRow = rows.shift();
       let userID = rows.map((d: string[]) => d[userIdRowIndex]);
@@ -274,7 +275,7 @@ app.post(
                 ) {
                   let data = await response.json();
                   console.log("data :", data);
-                  followerData[currentIndex] = profileData.follower_count;
+                  followerData[currentIndex] = data.data.user.follower_count;
 
                   if (
                     data["data"] !== undefined &&
@@ -358,7 +359,7 @@ app.post(
                           "Timeout: Profile data not received within 1 minute"
                         )
                       );
-                    }, 10000);
+                    }, 3000);
                   });
                 } catch (error) {
                   console.log("error :", error);
