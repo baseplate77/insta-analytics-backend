@@ -23,7 +23,7 @@ dotenv.config();
 const app: Express = express();
 const port = process.env.PORT || 3000;
 
-// app.use(cors());
+app.use(cors());
 app.use(express.json());
 
 app.get("/webhook-ig", async (req: Request, res: Response) => {
@@ -262,107 +262,87 @@ app.post(
               //   await delay(2000);
               // }
 
-              // const { page, browser } = await getReaLBrowser();
-              const browser = await globalBrowser.initBrower();
-              const page = await browser!.newPage();
+              const { page, browser } = await getReaLBrowser();
+              // const browser = await globalBrowser.initBrower();
+              // const page = await browser!.newPage();
 
               page.on("response", async (response: any) => {
                 const url = response.url() as string;
                 const status = response.status();
-                if (
-                  (response.request().resourceType() === "xhr" ||
-                    response.request().resourceType() === "fetch") &&
-                  url.includes("ww.instagram.com/graphql/query") &&
-                  profileData === undefined
-                ) {
-                  let data = await response.json();
-                  console.log("data :", data.data.user.follower_count);
-                  followerData[currentIndex] = data.data.user.follower_count;
+                // using instagram
+                // if (
+                //   (response.request().resourceType() === "xhr" ||
+                //     response.request().resourceType() === "fetch") &&
+                //   url.includes("ww.instagram.com/graphql/query") &&
+                //   profileData === undefined
+                // ) {
+                //   let data = await response.json();
+                //   console.log("data :", data.data.user.follower_count);
+                //   followerData[currentIndex] = data.data.user.follower_count;
 
-                  if (
-                    data["data"] !== undefined &&
-                    data["data"]["user"] !== undefined
-                  ) {
-                    profileData = data["data"]["user"];
-                  }
-                }
-
-                // try {
                 //   if (
-                //     ["xhr", "fetch"].includes(response.request().resourceType())
+                //     data["data"] !== undefined &&
+                //     data["data"]["user"] !== undefined
                 //   ) {
-                //     if (url.includes(profileDetailAPI)) {
-                //       if (status === 404) throw "profile not found";
-                //       console.log(`URL: ${url}`);
-                //       console.log(`Status: ${status}`);
-
-                //       try {
-                //         const data = await response.json();
-                //         profileData = data;
-                //         followerData[currentIndex] = profileData.followers;
-                //         console.log("follower :", profileData.followers);
-                //         if (!page.isClosed()) {
-                //           await page.close();
-                //         }
-                //         await browser.close();
-                //         // await page.close();
-                //         // await browser.close();
-                //       } catch (err) {
-                //         console.log("Response Body is not JSON.");
-                //       }
-
-                //       // // remove for production
-                //       // if (profileData !== undefined) {
-                //       //   await delay(1000);
-                //       //   await page.close();
-                //       // }
-                //     }
+                //     profileData = data["data"]["user"];
                 //   }
-                // } catch (error) {
-                //   console.log("profile data not found, setting it to 0");
-                //   profileData = { followers: -1 };
-                //   followerData[currentIndex] = -1;
                 // }
+
+                try {
+                  if (
+                    ["xhr", "fetch"].includes(response.request().resourceType())
+                  ) {
+                    if (url.includes(profileDetailAPI)) {
+                      if (status === 404) throw "profile not found";
+                      console.log(`URL: ${url}`);
+                      console.log(`Status: ${status}`);
+
+                      const data = await response.json();
+                      profileData = data;
+                      followerData[currentIndex] = profileData.followers;
+                      console.log("follower :", profileData.followers);
+
+                      throw "found account";
+                      // await page.close();
+                      // await browser.close();
+
+                      // // remove for production
+                      // if (profileData !== undefined) {
+                      //   await delay(1000);
+                      //   await page.close();
+                      // }
+                    }
+                  }
+                } catch (error) {
+                  if (error !== "found account") {
+                    console.log("profile data not found, setting it to 0");
+                    profileData = { followers: -1 };
+                    followerData[currentIndex] = -1;
+                  }
+                  await delay(
+                    Math.floor(Math.random() * (3000 - 500 + 1)) + 500
+                  );
+                  if (!page.isClosed()) {
+                    await page.close();
+                  }
+
+                  await browser.close();
+                }
               });
 
               try {
                 await page.goto(
-                  instgramUrl,
-                  // `https://app.notjustanalytics.com/analysis/${username.replace(
-                  //   /\s+/g,
-                  //   ""
-                  // )}`,
+                  // instgramUrl,
+                  `https://app.notjustanalytics.com/analysis/${username.replace(
+                    /\s+/g,
+                    ""
+                  )}`,
                   {
                     waitUntil: ["networkidle2"],
                     timeout: 60_000,
                   }
                 );
 
-                try {
-                  await page.waitForSelector('meta[name="description"]', {
-                    timeout: 10000,
-                  });
-
-                  // Extract the content of the meta description
-                  const metaDescription: any = await page.$eval(
-                    'meta[name="description"]',
-                    (el) => el.getAttribute("content")
-                  );
-
-                  // Parse the follower count from the meta description
-                  const followerMatch =
-                    metaDescription.match(/([\d,\.]+) Followers/);
-                  if (followerMatch && followerMatch[1]) {
-                    const followerCount = followerMatch[1].replace(/,/g, "");
-                    console.log(`${username} has ${followerCount} followers.`);
-                  } else {
-                    console.log("Could not extract follower count.");
-                  }
-                } catch (error) {
-                  console.error("Error:", error);
-                }
-
-                await delay(Math.floor(Math.random() * (3000 - 500 + 1)) + 500);
                 console.log("Page loaded successfully");
               } catch (error) {
                 console.log("error in page navigation");
