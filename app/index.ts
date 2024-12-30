@@ -337,6 +337,22 @@ app.post(
                     timeout: 60_000,
                   }
                 );
+
+                const descriptionElement = await page.$(
+                  'meta[property="og:description"]'
+                );
+                if (descriptionElement) {
+                  const contentValue = await page.evaluate(
+                    (element) => element.getAttribute("content"),
+                    descriptionElement
+                  );
+                  console.log("Content attribute value:", contentValue);
+                } else {
+                  console.log(
+                    'Element with query meta[property="og:description"] not found.'
+                  );
+                }
+
                 await delay(Math.floor(Math.random() * (3000 - 500 + 1)) + 500);
                 console.log("Page loaded successfully");
               } catch (error) {
