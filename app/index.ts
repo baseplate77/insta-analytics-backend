@@ -274,7 +274,7 @@ app.post(
                   profileData === undefined
                 ) {
                   let data = await response.json();
-                  console.log("data :", data);
+                  console.log("data :", data.data.user.follower_count);
                   followerData[currentIndex] = data.data.user.follower_count;
 
                   if (
@@ -359,7 +359,7 @@ app.post(
                           "Timeout: Profile data not received within 1 minute"
                         )
                       );
-                    }, 3000);
+                    }, 30000);
                   });
                 } catch (error) {
                   console.log("error :", error);
