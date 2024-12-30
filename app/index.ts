@@ -338,19 +338,28 @@ app.post(
                   }
                 );
 
-                const descriptionElement = await page.$(
-                  'meta[property="og:description"]'
-                );
-                if (descriptionElement) {
-                  const contentValue = await page.evaluate(
-                    (element) => element.getAttribute("content"),
-                    descriptionElement
+                try {
+                  await page.waitForSelector('meta[name="description"]', {
+                    timeout: 10000,
+                  });
+
+                  // Extract the content of the meta description
+                  const metaDescription: any = await page.$eval(
+                    'meta[name="description"]',
+                    (el) => el.getAttribute("content")
                   );
-                  console.log("Content attribute value:", contentValue);
-                } else {
-                  console.log(
-                    'Element with query meta[property="og:description"] not found.'
-                  );
+
+                  // Parse the follower count from the meta description
+                  const followerMatch =
+                    metaDescription.match(/([\d,\.]+) Followers/);
+                  if (followerMatch && followerMatch[1]) {
+                    const followerCount = followerMatch[1].replace(/,/g, "");
+                    console.log(`${username} has ${followerCount} followers.`);
+                  } else {
+                    console.log("Could not extract follower count.");
+                  }
+                } catch (error) {
+                  console.error("Error:", error);
                 }
 
                 await delay(Math.floor(Math.random() * (3000 - 500 + 1)) + 500);
