@@ -262,7 +262,9 @@ app.post(
               //   await delay(2000);
               // }
 
-              const { page, browser } = await getReaLBrowser();
+              // const { page, browser } = await getReaLBrowser();
+              const browser = await globalBrowser.initBrower();
+              const page = await browser!.newPage();
 
               page.on("response", async (response: any) => {
                 const url = response.url() as string;
@@ -335,7 +337,7 @@ app.post(
                     timeout: 60_000,
                   }
                 );
-
+                await delay(Math.floor(Math.random() * (3000 - 500 + 1)) + 500);
                 console.log("Page loaded successfully");
               } catch (error) {
                 console.log("error in page navigation");
@@ -359,7 +361,7 @@ app.post(
                           "Timeout: Profile data not received within 1 minute"
                         )
                       );
-                    }, 30000);
+                    }, 10000);
                   });
                 } catch (error) {
                   console.log("error :", error);
@@ -367,7 +369,7 @@ app.post(
                   console.log("isClose :", page.isClosed());
                   if (!page.isClosed()) {
                     await page.close();
-                    await browser.close();
+                    await browser!.close();
                     await delay(5000);
                   }
                 }
