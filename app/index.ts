@@ -23,7 +23,7 @@ dotenv.config();
 const app: Express = express();
 const port = process.env.PORT || 3000;
 
-// app.use(cors());
+app.use(cors());
 app.use(express.json());
 
 app.get("/webhook-ig", async (req: Request, res: Response) => {
@@ -185,15 +185,28 @@ const processQueue = async () => {
 };
 
 // processing one follower report at a time
+function getFileNameFromUrl(url: string) {
+  // Decode the URL to handle any encoded characters
+  const decodedUrl = decodeURIComponent(url);
 
+  // Use the path module to extract the file name
+  const fileName = path.basename(decodedUrl.split("?")[0]);
+
+  return fileName;
+}
 app.post(
   "/generate-follower-count-report",
   async (req: Request, res: Response) => {
     const { docUrl } = req.body;
+
+    const fileName = getFileNameFromUrl(docUrl);
+    console.log("fileName", fileName);
+
     try {
       const response = await axios.get(docUrl, {
         responseType: "arraybuffer",
       });
+
       const data = new Uint8Array(response.data);
       const workbook = xlsx.read(data, { type: "array" });
 
@@ -401,9 +414,7 @@ app.post(
 
         const worksheet = xlsx.utils.aoa_to_sheet(xlsxData);
         xlsx.utils.book_append_sheet(workbook2, worksheet, "Report");
-        const fileName = `Report-${new Date()
-          .toLocaleDateString("en-GB")
-          .replace(/\//g, "-")}.xlsx`;
+        // const fileName = `${fileName}`;
         const filePath = path.join(__dirname, fileName);
 
         // if (!fs.existsSync(filePath)) {
@@ -418,7 +429,9 @@ app.post(
         xlsx.writeFile(workbook2, filePath);
         const bucket = amdin.storage().bucket();
         await bucket.upload(filePath, {
-          destination: `reports/${fileName}`,
+          destination: `reports/${
+            fileName.endsWith(".xlsx") ? fileName : fileName + ".xlsx"
+          }`,
           metadata: {
             contentType:
               "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
