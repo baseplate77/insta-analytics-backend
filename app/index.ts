@@ -226,241 +226,254 @@ app.post(
 
       const headerRow = rows.shift();
       let userID = rows.map((d: string[]) => d[userIdRowIndex]);
+
+      const BATCH_SIZE = 5;
+      const totalBatches = Math.ceil(userID.length / BATCH_SIZE);
       userID = userID.filter((id) => id != null && id != undefined);
       // userID = userID.slice(40, 50);
-      let followerData: any[] = new Array(userID.length).fill(0);
+
       let batchSize = 2;
       console.log("user :", userID);
       // process started
       res.send({ success: true });
-      requestQueue.push(async () => {
-        for (let i = 0; i < userID.length; i += batchSize) {
-          try {
-            console.log("ii:", i);
+      for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+        const startIndex = batchIndex * BATCH_SIZE;
+        const endIndex = Math.min((batchIndex + 1) * BATCH_SIZE, userID.length);
+        const batchUserIDs = userID.slice(startIndex, endIndex);
+        const batchRows = rows.slice(startIndex, endIndex);
+        let followerData: any[] = new Array(userID.length).fill(0);
+        console.log(
+          "Processing users",
+          batchIndex,
+          "with account :",
+          batchUserIDs.length
+        );
+        requestQueue.push(async () => {
+          // Process batch of users
+          for (let i = 0; i < batchUserIDs.length; i += batchSize) {
+            try {
+              let tempUserId = [...batchUserIDs];
+              let userIds = tempUserId.splice(i, batchSize);
+              console.log("userList :", userIds);
 
-            let tempUserId = [...userID];
+              let promises = userIds.map(async (username, index) => {
+                let currentIndex = startIndex + i + index; // Adjust index for the current batch
+                console.log("current Index :", currentIndex);
 
-            let userIds = tempUserId.splice(i, batchSize);
-            console.log("userList :", userIds);
+                // Rest of the existing code for processing individual users
+                const profileDetailAPI = `https://api.notjustanalytics.com/profile/ig/analyze/${username.replace(
+                  /\s+/g,
+                  ""
+                )}`;
+                const instgramUrl = `https://www.instagram.com/${username.replace(
+                  /\s+/g,
+                  ""
+                )}`;
+                let profileData: any = undefined;
 
-            let promises = userIds.map(async (username, index) => {
-              let currentIndex = index + (i / batchSize) * batchSize;
+                // let browser = await globalBrowser.initBrower();
+                // try {
+                //   let profileUrl = `https://www.instagram.com/${username}/`;
+                //   console.log("profile :", profileUrl);
 
-              console.log("current Index :", currentIndex);
-              // cherissehaynessofficial
-              const profileDetailAPI = `https://api.notjustanalytics.com/profile/ig/analyze/${username.replace(
-                /\s+/g,
-                ""
-              )}`;
+                //   profileData = await getUserDetails(profileUrl, browser);
 
-              const instgramUrl = `https://www.instagram.com/${username.replace(
-                /\s+/g,
-                ""
-              )}`;
-              let profileData: any = undefined;
-
-              // let browser = await globalBrowser.initBrower();
-              // try {
-              //   let profileUrl = `https://www.instagram.com/${username}/`;
-              //   console.log("profile :", profileUrl);
-
-              //   profileData = await getUserDetails(profileUrl, browser);
-
-              //   followerData[currentIndex] = profileData["follower_count"];
-              //   console.log("follower data :", followerData);
-              // } catch (error) {
-              //   console.log("error getting profile data :", error);
-              // } finally {
-              //   await browser.close();
-              //   await delay(2000);
-              // }
-
-              const { page, browser } = await getReaLBrowser();
-              // const browser = await globalBrowser.initBrower();
-              // const page = await browser!.newPage();
-
-              page.on("response", async (response: any) => {
-                const url = response.url() as string;
-                const status = response.status();
-                // using instagram
-                // if (
-                //   (response.request().resourceType() === "xhr" ||
-                //     response.request().resourceType() === "fetch") &&
-                //   url.includes("ww.instagram.com/graphql/query") &&
-                //   profileData === undefined
-                // ) {
-                //   let data = await response.json();
-                //   console.log("data :", data.data.user.follower_count);
-                //   followerData[currentIndex] = data.data.user.follower_count;
-
-                //   if (
-                //     data["data"] !== undefined &&
-                //     data["data"]["user"] !== undefined
-                //   ) {
-                //     profileData = data["data"]["user"];
-                //   }
+                //   followerData[currentIndex] = profileData["follower_count"];
+                //   console.log("follower data :", followerData);
+                // } catch (error) {
+                //   console.log("error getting profile data :", error);
+                // } finally {
+                //   await browser.close();
+                //   await delay(2000);
                 // }
 
+                const { page, browser } = await getReaLBrowser();
+                // const browser = await globalBrowser.initBrower();
+                // const page = await browser!.newPage();
+
+                page.on("response", async (response: any) => {
+                  const url = response.url() as string;
+                  const status = response.status();
+                  // using instagram
+                  // if (
+                  //   (response.request().resourceType() === "xhr" ||
+                  //     response.request().resourceType() === "fetch") &&
+                  //   url.includes("ww.instagram.com/graphql/query") &&
+                  //   profileData === undefined
+                  // ) {
+                  //   let data = await response.json();
+                  //   console.log("data :", data.data.user.follower_count);
+                  //   followerData[currentIndex] = data.data.user.follower_count;
+
+                  //   if (
+                  //     data["data"] !== undefined &&
+                  //     data["data"]["user"] !== undefined
+                  //   ) {
+                  //     profileData = data["data"]["user"];
+                  //   }
+                  // }
+
+                  try {
+                    if (
+                      ["xhr", "fetch"].includes(
+                        response.request().resourceType()
+                      )
+                    ) {
+                      if (url.includes(profileDetailAPI)) {
+                        if (status === 404) throw "profile not found";
+                        console.log(`URL: ${url}`);
+                        console.log(`Status: ${status}`);
+
+                        const data = await response.json();
+                        profileData = data;
+                        followerData[currentIndex] = profileData.followers;
+                        console.log("follower :", profileData.followers);
+
+                        throw "found account";
+                        // await page.close();
+                        // await browser.close();
+
+                        // // remove for production
+                        // if (profileData !== undefined) {
+                        //   await delay(1000);
+                        //   await page.close();
+                        // }
+                      }
+                    }
+                  } catch (error) {
+                    if (error !== "found account") {
+                      console.log("profile data not found, setting it to 0");
+                      profileData = { followers: -1 };
+                      followerData[currentIndex] = -1;
+                    }
+                    await delay(
+                      Math.floor(Math.random() * (3000 - 500 + 1)) + 500
+                    );
+                    if (!page.isClosed()) {
+                      await page.close();
+                    }
+
+                    await browser.close();
+                  }
+                });
+
                 try {
-                  if (
-                    ["xhr", "fetch"].includes(response.request().resourceType())
-                  ) {
-                    if (url.includes(profileDetailAPI)) {
-                      if (status === 404) throw "profile not found";
-                      console.log(`URL: ${url}`);
-                      console.log(`Status: ${status}`);
+                  await page.goto(
+                    // instgramUrl,
+                    `https://app.notjustanalytics.com/analysis/${username.replace(
+                      /\s+/g,
+                      ""
+                    )}`,
+                    {
+                      waitUntil: ["networkidle2"],
+                      timeout: 60_000,
+                    }
+                  );
 
-                      const data = await response.json();
-                      profileData = data;
-                      followerData[currentIndex] = profileData.followers;
-                      console.log("follower :", profileData.followers);
+                  console.log("Page loaded successfully");
+                } catch (error) {
+                  console.log("error in page navigation");
+                } finally {
+                  try {
+                    await new Promise<void>((resolve, reject) => {
+                      const checkProfileData = setInterval(() => {
+                        console.log("waiting for profile data :", username);
 
-                      throw "found account";
-                      // await page.close();
-                      // await browser.close();
+                        if (profileData !== undefined) {
+                          clearInterval(checkProfileData);
+                          resolve();
+                        }
+                      }, 1000); //
 
-                      // // remove for production
-                      // if (profileData !== undefined) {
-                      //   await delay(1000);
-                      //   await page.close();
-                      // }
+                      // Break out of the loop after 1 minute
+                      setTimeout(() => {
+                        clearInterval(checkProfileData);
+                        reject(
+                          new Error(
+                            "Timeout: Profile data not received within 1 minute"
+                          )
+                        );
+                      }, 10000);
+                    });
+                  } catch (error) {
+                    console.log("error :", error);
+                  } finally {
+                    console.log("isClose :", page.isClosed());
+                    if (!page.isClosed()) {
+                      await page.close();
+                      await browser!.close();
+                      await delay(5000);
                     }
                   }
-                } catch (error) {
-                  if (error !== "found account") {
-                    console.log("profile data not found, setting it to 0");
-                    profileData = { followers: -1 };
-                    followerData[currentIndex] = -1;
-                  }
-                  await delay(
-                    Math.floor(Math.random() * (3000 - 500 + 1)) + 500
-                  );
-                  if (!page.isClosed()) {
-                    await page.close();
-                  }
-
-                  await browser.close();
                 }
+
+                if (profileData === undefined) throw "profile not found";
               });
 
-              try {
-                await page.goto(
-                  // instgramUrl,
-                  `https://app.notjustanalytics.com/analysis/${username.replace(
-                    /\s+/g,
-                    ""
-                  )}`,
-                  {
-                    waitUntil: ["networkidle2"],
-                    timeout: 60_000,
-                  }
-                );
-
-                console.log("Page loaded successfully");
-              } catch (error) {
-                console.log("error in page navigation");
-              } finally {
-                try {
-                  await new Promise<void>((resolve, reject) => {
-                    const checkProfileData = setInterval(() => {
-                      console.log("waiting for profile data :", username);
-
-                      if (profileData !== undefined) {
-                        clearInterval(checkProfileData);
-                        resolve();
-                      }
-                    }, 1000); //
-
-                    // Break out of the loop after 1 minute
-                    setTimeout(() => {
-                      clearInterval(checkProfileData);
-                      reject(
-                        new Error(
-                          "Timeout: Profile data not received within 1 minute"
-                        )
-                      );
-                    }, 10000);
-                  });
-                } catch (error) {
-                  console.log("error :", error);
-                } finally {
-                  console.log("isClose :", page.isClosed());
-                  if (!page.isClosed()) {
-                    await page.close();
-                    await browser!.close();
-                    await delay(5000);
-                  }
-                }
-              }
-
-              if (profileData === undefined) throw "profile not found";
-            });
-
-            await Promise.all([...promises]);
-          } catch (error) {
-            console.log("error in browser :", error);
+              await Promise.all([...promises]);
+            } catch (error) {
+              console.log("error in browser :", error);
+            }
           }
-        }
-        console.log("completed :", followerData);
+          console.log(`Completed batch ${batchIndex + 1}/${totalBatches}`);
+          const workbook2 = xlsx.utils.book_new();
+          const xlsxData = [[...headerRow, "Followers", "Differenceß"]];
 
-        const workbook2 = xlsx.utils.book_new();
+          // Only process rows for the current batch
+          for (let i = 0; i < batchRows.length; i++) {
+            let row = batchRows[i];
+            let endGoal = row[endGoalIndex] ?? 0;
+            xlsxData.push([
+              ...row,
+              followerData[startIndex + i],
+              endGoal - followerData[startIndex + i],
+            ]);
+          }
 
-        const xlsxData = [[...headerRow, "Followers", "Differenceß"]];
-        for (let i = 0; i < rows.length; i++) {
-          let row = rows[i];
-          let endGoal = row[endGoalIndex] ?? 0;
-          xlsxData.push([...row, followerData[i], endGoal - followerData[i]]);
-        }
+          const worksheet = xlsx.utils.aoa_to_sheet(xlsxData);
+          xlsx.utils.book_append_sheet(
+            workbook2,
+            worksheet,
+            `Report_Batch_${batchIndex + 1}`
+          );
+          const batchFileName = `batch_${batchIndex + 1}_${fileName}`;
+          const filePath = path.join(__dirname, batchFileName);
 
-        const worksheet = xlsx.utils.aoa_to_sheet(xlsxData);
-        xlsx.utils.book_append_sheet(workbook2, worksheet, "Report");
-        // const fileName = `${fileName}`;
-        const filePath = path.join(__dirname, fileName);
+          // ... rest of the existing code for saving and uploading the file ...
+          xlsx.writeFile(workbook2, filePath);
+          const bucket = amdin.storage().bucket();
+          await bucket.upload(filePath, {
+            destination: `reports/${
+              batchFileName.endsWith(".xlsx")
+                ? batchFileName
+                : batchFileName + ".xlsx"
+            }`,
+            metadata: {
+              contentType:
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            },
+          });
 
-        // if (!fs.existsSync(filePath)) {
-        // await touch(filePath, { force: true }, (err) => {
-        //   console.log("error in creating file :", err);
-        // });
-        // }
-        console.log("dir :", filePath);
+          const file = bucket.file(`reports/${batchFileName}`);
+          const [url] = await file.getSignedUrl({
+            action: "read",
+            expires: "03-01-2500",
+          });
 
-        // fs.closeSync(fs.openSync(filePath, "w"));
+          await sendMail(
+            ["base8087@gmail.com"], // SENDER_EMAIL,
+            `Report Batch ${batchIndex + 1}`,
+            `
+            <div>
+              Report link for batch ${batchIndex + 1}/${totalBatches}
+              <a href="${url}">${batchFileName}</a>
+            </div>
+            `
+          );
 
-        xlsx.writeFile(workbook2, filePath);
-        const bucket = amdin.storage().bucket();
-        await bucket.upload(filePath, {
-          destination: `reports/${
-            fileName.endsWith(".xlsx") ? fileName : fileName + ".xlsx"
-          }`,
-          metadata: {
-            contentType:
-              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-          },
+          fs.unlinkSync(filePath);
         });
-
-        // Get the download URL
-        const file = bucket.file(`reports/${fileName}`);
-        const [url] = await file.getSignedUrl({
-          action: "read",
-          expires: "03-01-2500", // Set an appropriate expiration date
-        });
-
-        // send mail
-        console.log("url :", url);
-
-        await sendMail(
-          SENDER_EMAIL,
-          "report",
-          `
-          <div>
-            Report link
-            <a href="${url}">${fileName}</a>
-          </div>
-          `
-        );
-
-        fs.unlinkSync(filePath);
-      });
+      }
       // res.send({ followerData, success: true });
     } catch (error) {
       console.error("Error reading XLSX file:", error);
