@@ -227,7 +227,7 @@ app.post(
       const headerRow = rows.shift();
       let userID = rows.map((d: string[]) => d[userIdRowIndex]);
 
-      const BATCH_SIZE = 5;
+      const BATCH_SIZE = 500;
       const totalBatches = Math.ceil(userID.length / BATCH_SIZE);
       userID = userID.filter((id) => id != null && id != undefined);
       // userID = userID.slice(40, 50);
@@ -461,7 +461,7 @@ app.post(
           });
 
           await sendMail(
-            ["base8087@gmail.com"], // SENDER_EMAIL,
+            SENDER_EMAIL,
             `Report Batch ${batchIndex + 1}`,
             `
             <div>
