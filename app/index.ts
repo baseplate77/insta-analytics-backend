@@ -23,7 +23,7 @@ dotenv.config();
 const app: Express = express();
 const port = process.env.PORT || 3000;
 
-app.use(cors());
+// app.use(cors());
 app.use(express.json());
 
 app.get("/webhook-ig", async (req: Request, res: Response) => {
@@ -198,7 +198,7 @@ app.post(
   "/generate-follower-count-report",
   async (req: Request, res: Response) => {
     const { docUrl } = req.body;
-
+    const startTime = Date.now();
     const fileName = getFileNameFromUrl(docUrl);
     console.log("fileName", fileName);
 
@@ -454,13 +454,16 @@ app.post(
             action: "read",
             expires: "03-01-2500",
           });
-
+          const executionTimeMs = Date.now() - startTime;
+          const executionTimeMinutes =
+            Math.round((executionTimeMs / 60000) * 100) / 100;
           await sendMail(
             SENDER_EMAIL,
             `Report Batch ${batchIndex + 1}`,
             `
             <div>
-              Report link for batch ${batchIndex + 1}/${totalBatches}
+              <p>Report link for batch ${batchIndex + 1}/${totalBatches}</p>
+              <p>Execution Time: ${executionTimeMinutes} minutes</p>
               <a href="${url}">${batchFileName}</a>
             </div>
             `
