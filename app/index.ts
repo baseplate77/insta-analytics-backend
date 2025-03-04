@@ -203,6 +203,14 @@ app.post(
     console.log("fileName", fileName);
 
     try {
+      const cacheFilePath = path.join(__dirname, `${fileName}_cache.json`);
+      let cachedData: { [key: string]: number } = {};
+
+      // Load cache if exists
+      if (fs.existsSync(cacheFilePath)) {
+        cachedData = JSON.parse(fs.readFileSync(cacheFilePath, "utf-8"));
+        console.log("Loaded cache data");
+      }
       const response = await axios.get(docUrl, {
         responseType: "arraybuffer",
       });
@@ -227,7 +235,7 @@ app.post(
       const headerRow = rows.shift();
       let userID = rows.map((d: string[]) => d[userIdRowIndex]);
 
-      const BATCH_SIZE = 500;
+      const BATCH_SIZE = 5000000;
       const totalBatches = Math.ceil(userID.length / BATCH_SIZE);
       userID = userID.filter((id) => id != null && id != undefined);
       // userID = userID.slice(40, 50);
@@ -242,12 +250,7 @@ app.post(
         const batchUserIDs = userID.slice(startIndex, endIndex);
         const batchRows = rows.slice(startIndex, endIndex);
         let followerData: any[] = new Array(userID.length).fill(0);
-        console.log(
-          "Processing users",
-          batchIndex,
-          "with account :",
-          batchUserIDs.length
-        );
+
         requestQueue.push(async () => {
           // Process batch of users
           for (let i = 0; i < batchUserIDs.length; i += batchSize) {
@@ -259,7 +262,12 @@ app.post(
               let promises = userIds.map(async (username, index) => {
                 let currentIndex = startIndex + i + index; // Adjust index for the current batch
                 console.log("current Index :", currentIndex);
-
+                // Check cache first
+                if (cachedData[username]) {
+                  console.log(`Using cached data for ${username}`);
+                  followerData[currentIndex] = cachedData[username];
+                  return;
+                }
                 // Rest of the existing code for processing individual users
                 const profileDetailAPI = `https://api.notjustanalytics.com/profile/ig/analyze/${username.replace(
                   /\s+/g,
@@ -294,24 +302,6 @@ app.post(
                 page.on("response", async (response: any) => {
                   const url = response.url() as string;
                   const status = response.status();
-                  // using instagram
-                  // if (
-                  //   (response.request().resourceType() === "xhr" ||
-                  //     response.request().resourceType() === "fetch") &&
-                  //   url.includes("ww.instagram.com/graphql/query") &&
-                  //   profileData === undefined
-                  // ) {
-                  //   let data = await response.json();
-                  //   console.log("data :", data.data.user.follower_count);
-                  //   followerData[currentIndex] = data.data.user.follower_count;
-
-                  //   if (
-                  //     data["data"] !== undefined &&
-                  //     data["data"]["user"] !== undefined
-                  //   ) {
-                  //     profileData = data["data"]["user"];
-                  //   }
-                  // }
 
                   try {
                     if (
@@ -328,7 +318,12 @@ app.post(
                         profileData = data;
                         followerData[currentIndex] = profileData.followers;
                         console.log("follower :", profileData.followers);
-
+                        // Update cache
+                        cachedData[username] = profileData.followers;
+                        fs.writeFileSync(
+                          cacheFilePath,
+                          JSON.stringify(cachedData, null, 2)
+                        );
                         throw "found account";
                         // await page.close();
                         // await browser.close();
@@ -415,9 +410,9 @@ app.post(
               console.log("error in browser :", error);
             }
           }
-          console.log(`Completed batch ${batchIndex + 1}/${totalBatches}`);
+          // console.log(`Completed batch ${batchIndex + 1}/${totalBatches}`);
           const workbook2 = xlsx.utils.book_new();
-          const xlsxData = [[...headerRow, "Followers", "Differenceß"]];
+          const xlsxData = [[...headerRow, "Followers", "Difference"]];
 
           // Only process rows for the current batch
           for (let i = 0; i < batchRows.length; i++) {
@@ -472,6 +467,7 @@ app.post(
           );
 
           fs.unlinkSync(filePath);
+          fs.unlinkSync(cacheFilePath);
         });
       }
       // res.send({ followerData, success: true });
