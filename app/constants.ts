@@ -5,6 +5,7 @@ dotenv.config();
 export const SENDER_EMAIL = [
   "processcordinator28@gmail.com",
   "daisyp11d@gmail.com",
+  "kalyani.saratkar217@gmail.com",
 ];
 // export const SENDER_EMAIL = "base8087@gmail.com";
 export const proxyList = [
