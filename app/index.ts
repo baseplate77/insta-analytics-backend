@@ -1,4 +1,4 @@
-import express, { Express, Request, Response } from "express";
+import express, { Express, raw, Request, Response } from "express";
 import dotenv from "dotenv";
 import delay from "./utils/delay";
 import {
@@ -16,14 +16,17 @@ import axios from "axios";
 import path from "path";
 import { amdin } from "./utils/firebase";
 import { sendMail } from "./utils/resend";
-import { sampleResponse, SENDER_EMAIL } from "./constants";
+import { SENDER_EMAIL } from "./constants";
+
 // @ts-ignore
 dotenv.config();
 
 const app: Express = express();
 const port = process.env.PORT || 3000;
 
-// app.use(cors());
+if (process.env.NODE_ENV === "development") {
+  app.use(cors());
+}
 app.use(express.json());
 
 app.get("/webhook-ig", async (req: Request, res: Response) => {
@@ -160,10 +163,14 @@ app.get("/api-proxy", async (req, res) => {
   try {
     const serverUrl = decodeURIComponent(serId as string);
 
-    console.log("serverur; ", serverUrl);
+    // Add domain and prefix if not present
+    const baseUrl = `http://localhost:${port}`;
+    const fullUrl = serverUrl.startsWith("http")
+      ? serverUrl
+      : `${baseUrl}${serverUrl.startsWith("/") ? "" : "/"}${serverUrl}`;
 
-    const response = await axios.get(serverUrl);
-
+    console.log("serverurl: ", serverUrl);
+    const response = await axios.get(fullUrl);
     res.send(response.data);
   } catch (error) {
     console.log("errir :", error);
@@ -483,6 +490,254 @@ app.post(
   }
 );
 
+app.get("/test-reconnect", async (req: Request, res: Response) => {
+  console.log("started");
+  const startTime = Date.now();
+
+  const options1 = {
+    method: "POST",
+    url: "https://production-sfo.browserless.io/chrome/bql",
+    params: {
+      token: process.env.BROWSERLESS_TOKEN!,
+    },
+    headers: {
+      "Content-Type": "application/json",
+    },
+    data: {
+      query:
+        'mutation captureNotJustAnalyticsData {\n  reject(type: [image, media, font, stylesheet]) {\n    enabled\n    time\n  }\n  openPage: goto(\n    url: "https://app.notjustanalytics.com/analysis/flutteruidev"\n    waitUntil: domContentLoaded\n    timeout: 65000\n  ) {\n    status\n  }\n  # waitForRequest(url: "*analyze*", method: POST) {\n  #   time\n  #   url\n  # }\n  request(url: "*profile/ig/analyze*", method: POST, type: xhr, operator: and, wait: true) {\n    url\n    type\n    method\n  }\n  # waitForResponse(url: "*analyze*") {\n  #   time\n  #   url\n  #   status\n  # }\n\t\twaitForTimeout(time:2000) {\n\t\ttime\n\t\t}\n   analyzeResponse: response(\n    url: "*profile/ig/analyze*"\n    # status:[201] \n    method: POST\n    operator: and\n    wait: true\n  ) {\n    url\n    status\n    body\n  }\n  analyzeFollower: response(\n    url: "*ig/history*"\n    method: GET\n    type: xhr\n    operator: and\n    wait: true\n  ) {\n    url\n    status\n    body\n  }\n \n}',
+      operationName: "captureNotJustAnalyticsData",
+    },
+  };
+
+  const { data: data1 } = await axios.request(options1);
+  console.log(data1);
+  let browserWSEndpoint = data1.data.reconnect.browserWSEndpoint;
+  let browserQLEndpoint = data1.data.reconnect.browserQLEndpoint;
+  let devtoolsFrontendUrl = data1.data.reconnect.devtoolsFrontendUrl;
+  console.log(browserWSEndpoint, browserQLEndpoint);
+  console.log(devtoolsFrontendUrl);
+  const endTime = Date.now();
+  const executionTimeMs = endTime - startTime;
+  const executionTimeSeconds = Math.round((executionTimeMs / 1000) * 100) / 100;
+  let profileData, followerData;
+
+  try {
+    const rawBody = data1.data.analyzeResponse[0].body;
+    // Handle escaped JSON string by first replacing escaped quotes
+    console.log("rawbody ", typeof rawBody);
+
+    profileData = JSON.parse(rawBody);
+  } catch (err) {
+    console.error("Error parsing profile data:", err);
+    profileData = {};
+  }
+
+  try {
+    followerData = JSON.parse(data1.data.analyzeFollower[0].body);
+  } catch (err) {
+    console.error("Error parsing follower data:", err);
+    followerData = {};
+  }
+
+  res.send({
+    data: { profileData, followerData },
+    startTime,
+    endTime,
+    executionTimeSeconds,
+  });
+  // const browser = await puppeteer.connect({
+  //   browserWSEndpoint,
+  // });
+
+  // const pages = await browser.pages();
+  // const page = pages[0];
+  // if (!page) {
+  //   console.log("page not found");
+  // }
+  // let profileData: any;
+  // page.on("response", async (response: any) => {
+  //   const url = response.url() as string;
+  //   const status = response.status();
+  //   const headers = response.headers();
+  //   const type = response.request().resourceType();
+  //   // console.log(url, type);
+  //   // Only log API responses (JSON responses typically)
+  //   const followingDataAPI =
+  //     "https://api.notjustanalytics.com/profile/ig/history/";
+  //   const profileDetailAPI = `https://api.notjustanalytics.com/profile/ig/analyze/${"flutteruidev"}`;
+  //   if (
+  //     response.request().resourceType() === "xhr" ||
+  //     response.request().resourceType() === "fetch"
+  //   ) {
+  //     console.log(`URL: ${url}`);
+  //     console.log(`Status: ${status}`);
+  //     console.log("Type:", type);
+
+  //     try {
+  //       if (url.includes(profileDetailAPI)) {
+  //         if (status === 404) {
+  //           throw "profile not found ";
+  //         }
+  //         let data = await response.json(); // Attempt to parse the response as JSON
+  //         profileData = data;
+  //         console.log(
+  //           "\n\n\n\n\n\n\n\n\n\nprofile data found :",
+  //           url,
+  //           "\n\n\n\n\n\n\n\n"
+  //         );
+  //       } else if (url.includes(followingDataAPI)) {
+  //         if (status === 404) {
+  //           throw "profile not found ";
+  //         }
+  //         let data = await response.json(); // Attempt to parse the response as JSON
+  //         console.log("\n\n\n\n\n\nhistory data foind", url, "\n\n\n\n\n\n");
+  //       }
+  //     } catch (err) {
+  //       console.log("Response Body is not JSON.");
+  //       await delay(1000);
+  //       console.log("isclosed :", page.isClosed());
+
+  //       if (!page.isClosed()) {
+  //         await page.close();
+  //       }
+  //     }
+  //   }
+  // });
+
+  // try {
+  //   try {
+  //     const timeout = 30000; // 30 seconds timeout
+  //     const checkInterval = 1000; // Check every 1 second
+  //     let elapsedTime = 0;
+
+  //     await new Promise<void>((resolve, reject) => {
+  //       const checkProfileData = setInterval(() => {
+  //         if (profileData !== undefined) {
+  //           clearInterval(checkProfileData);
+  //           resolve();
+  //           return;
+  //         }
+
+  //         elapsedTime += checkInterval;
+  //         if (elapsedTime >= timeout) {
+  //           clearInterval(checkProfileData);
+  //           reject(new Error("Profile data not found after 30 seconds"));
+  //         }
+  //       }, checkInterval);
+  //     });
+
+  //     if (profileData === undefined) {
+  //       res
+  //         .status(404)
+  //         .send({ error: "Profile data not found", success: false });
+  //       return;
+  //     }
+
+  //     res.send(profileData);
+  //   } catch (error) {
+  //     console.log("Error checking profile data:", error);
+  //     res.status(404).send({ error: "Profile data not found", success: false });
+  //   }
+  //   res.send(profileData);
+  // } catch (error) {
+  //   console.log("Profile data not found:", error);
+  //   res.send({ error: "Profile not found", success: false });
+  // } finally {
+  //   if (!page.isClosed()) {
+  //     await page.close();
+  //   }
+  //   await browser.disconnect();
+  //   console.log("Browser closed");
+  // }
+  // const options = {
+  //   method: "POST",
+  //   url: browserQLEndpoint,
+  //   params: {
+  //     token: "S4DVGumASoee6g0aa437042abb6523b4050eb52768",
+  //     humanlike: true,
+  //   },
+  //   headers: {
+  //     "Content-Type": "application/json",
+  //   },
+  //   data: {
+  //     query:
+  //       'mutation captureNotJustAnalyticsData {\n  reject(type: [image, media, font, stylesheet]) {\n    enabled\n    time\n  }\n  openPage: goto(\n    url: "https://app.notjustanalytics.com/analysis/flutteruidev"\n    waitUntil: firstContentfulPaint\n    timeout: 65000\n  ) {\n    status\n  }\n  if(selector: ".cf-browser-verification") {\n    verify(type: cloudflare) {\n      solved\n    }\n  }\n  captureAPI: response(\n    url: "*api.notjustanalytics.com/profile/ig/analyze/*"\n    type: xhr\n    status: [201]\n    wait: true\n  ) {\n    url\n    body\n    status\n  }\n}',
+  //     operationName: "captureNotJustAnalyticsData",
+  //   },
+  // };
+
+  // const { data } = await axios.request(options);
+});
+
+app.get("/profile-report2", async (req: Request, res: Response) => {
+  try {
+    const { username } = req.query;
+    console.log("started");
+    const startTime = Date.now();
+    const url = `https://app.notjustanalytics.com/analysis/${username}`;
+    const query = `mutation captureNotJustAnalyticsData {\n  reject(type: [image, media, font, stylesheet]) {\n    enabled\n    time\n  }\n  openPage: goto(\n    url: ${JSON.stringify(url)} \n    waitUntil: domContentLoaded\n   ) {\n    status\n  }\n  request(\n    url: "*profile/ig/analyze*"\n    method: POST\n    type: xhr\n    operator: and\n    wait: true\n    timeout: 5000\n  ) {\n    url\n    type\n    method\n  }\n  waitForTimeout(time: 2000) {\n    time\n  }\n  analyzeResponse: response(\n    url: "*profile/ig/analyze*"\n    method: POST\n    operator: and\n    wait: true\n    timeout: 5000\n  ) {\n    url\n    status\n    body\n  }\n  analyzeFollower: response(\n    url: "*ig/history*"\n    method: GET\n    type: xhr\n    operator: and\n    wait: true\n    timeout: 5000\n  ) {\n    url\n    status\n    body\n  }\n}`;
+
+    const options1 = {
+      method: "POST",
+      url: "https://production-sfo.browserless.io/chrome/bql",
+      params: {
+        token: process.env.BROWSERLESS_TOKEN!,
+      },
+      headers: {
+        "Content-Type": "application/json",
+      },
+      data: {
+        query: query,
+        operationName: "captureNotJustAnalyticsData",
+      },
+    };
+
+    const { data } = await axios.request(options1);
+
+    const endTime = Date.now();
+    const executionTimeMs = endTime - startTime;
+    const executionTimeSeconds =
+      Math.round((executionTimeMs / 1000) * 100) / 100;
+    let profileData, followingData;
+
+    try {
+      const rawBody = data.data.analyzeResponse[0].body;
+
+      profileData = JSON.parse(rawBody);
+      if (profileData["statusCode"] === 404) {
+        profileData = {};
+      }
+    } catch (err) {
+      console.error("Error parsing profile data:", err);
+      profileData = {};
+    }
+
+    try {
+      followingData = JSON.parse(data.data.analyzeFollower[0].body);
+    } catch (err) {
+      console.error("Error parsing follower data:", err);
+      followingData = {};
+    }
+    console.log("data send");
+
+    res.send({
+      profileData,
+      followingData,
+      success: true,
+      executionTimeSeconds,
+    });
+  } catch (error) {
+    console.log("error in profile report :", error);
+    res.status(500).send({
+      profileData: {},
+      followerData: {},
+      success: false,
+      error: error,
+    });
+  }
+});
+
 app.get("/profile-report", async (req: Request, res: Response) => {
   requestQueue.push(async () => {
     const { username } = req.query;
@@ -490,6 +745,7 @@ app.get("/profile-report", async (req: Request, res: Response) => {
     // res.send(sampleResponse);
     // return;
     const { page, browser } = await getReaLBrowser();
+
     try {
       // let { connect } = await import_("puppeteer-real-browser");
       // const { page, browser } = await connect({
