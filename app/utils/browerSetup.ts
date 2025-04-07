@@ -156,11 +156,11 @@ class GlobalBroswer {
       //     ? "/usr/bin/google-chrome"
       //     : undefined,
       // ignoreHTTPSErrors: true,
-      executablePath: "/usr/bin/google-chrome",
+      // executablePath: "/usr/bin/google-chrome",
       protocolTimeout: 0,
       timeout: 0,
-      headless: true,
-      // headless: false,
+      // headless: true,
+      headless: false,
       // headless: process.env.NODE_ENV !== "development",
       args: [
         "--disable-gpu",
