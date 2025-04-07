@@ -719,7 +719,7 @@ app.get("/profile-report2", async (req: Request, res: Response) => {
       console.error("Error parsing follower data:", err);
       followingData = {};
     }
-    console.log("data send");
+    console.log(`Data sent in ${executionTimeSeconds} seconds`);
 
     res.send({
       profileData,
