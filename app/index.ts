@@ -182,22 +182,44 @@ app.get("/api-proxy", async (req, res) => {
   }
 });
 app.get("/test-video", async (req, res) => {
+  const startTime = Date.now();
   const browser = await puppeteer.connect({
-    browserWSEndpoint: `wss://production-lon.browserless.io?token=${process.env.BROWSERLESS_TOKEN}&headless=false&record=true`,
+    browserWSEndpoint: `wss://production-lon.browserless.io?token=${process.env.BROWSERLESS_TOKEN}&headless=false&record=true&--window-size=1920,1080`,
   });
   console.log("started");
 
   let page = await browser.newPage();
-  await page.goto(
-    "https://www.youtube.com/watch?v=OWWMhip0jzU&ab_channel=MariaTrappen",
-    {
-      timeout: 10000,
-    }
-  );
 
-  // The magic happens here
+  // Set fixed viewport dimensions to 1920x1080
+  // await page.setViewport({
+  //   width: 1920,
+  //   height: 1080,
+  //   deviceScaleFactor: 1,
+  // });
+
+  // Enable full screen mode
+  await page.evaluate(() => {
+    document.documentElement.requestFullscreen();
+  });
+
+  await page.goto("https://instaanalyser.com/cache/flutteruidev");
+
+  // Configure recording with specific dimensions
   const cdp = await page.createCDPSession();
-  await cdp.send("Browserless.startRecording" as any);
+
+  // Set recording parameters
+  // await cdp.send("Page.setScreencastViewport" as any, {
+  //   width: 1920,
+  //   height: 1080,
+  //   scale: 1,
+  // });
+
+  await cdp.send("Browserless.startRecording" as any, {
+    width: 1920,
+    height: 1080,
+    frameRate: 30,
+  });
+
   await delay(5000);
   const response = await cdp.send("Browserless.stopRecording" as any);
   // ☝️ The response is a string containing a valid webm file
@@ -207,6 +229,10 @@ app.get("/test-video", async (req, res) => {
 
   await browser.close();
   console.log("end");
+  const endTime = Date.now();
+  const executionTimeMs = endTime - startTime;
+  const executionTimeSeconds = Math.round((executionTimeMs / 1000) * 100) / 100;
+  console.log(`Video generation took ${executionTimeSeconds} seconds`);
 
   res.set({
     "Content-Type": "video/webm",
