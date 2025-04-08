@@ -202,7 +202,7 @@ app.get("/test-video", async (req, res) => {
     document.documentElement.requestFullscreen();
   });
 
-  await page.goto("https://instaanalyser.com/cache/flutteruidev");
+  await page.goto("https://browserless.io");
 
   // Configure recording with specific dimensions
   const cdp = await page.createCDPSession();
