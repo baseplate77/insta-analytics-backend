@@ -29,8 +29,8 @@ const app: Express = express();
 const port = process.env.PORT || 3000;
 
 if (process.env.NODE_ENV === "development") {
+  app.use(cors());
 }
-app.use(cors());
 app.use(express.json());
 
 app.get("/webhook-ig", async (req: Request, res: Response) => {
