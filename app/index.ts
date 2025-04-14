@@ -29,8 +29,8 @@ const app: Express = express();
 const port = process.env.PORT || 3000;
 
 if (process.env.NODE_ENV === "development") {
-  app.use(cors());
 }
+app.use(cors());
 app.use(express.json());
 
 app.get("/webhook-ig", async (req: Request, res: Response) => {
@@ -240,8 +240,88 @@ app.get("/test-video", async (req, res) => {
   });
   res.send(file);
 });
+
+app.get("/long-screenshot", async (req, res) => {
+  const { username } = req.query;
+
+  console.log("long image processing started for :", username);
+  const startTime = Date.now();
+
+  const browser =
+    process.env.NODE_ENV === "development"
+      ? await globalBrowser.initBrower()
+      : await puppeteer.connect({
+          browserWSEndpoint: `wss://production-lon.browserless.io?token=${process.env.BROWSERLESS_TOKEN}`,
+        });
+
+  let page = await browser.newPage();
+  // Set viewport size for better PDF rendering
+  await page.setViewport({
+    width: 1200,
+    height: 800,
+    deviceScaleFactor: 4, // Increase resolution/sharpness
+  });
+
+  try {
+    const url =
+      process.env.NODE_ENV === "development"
+        ? "http://localhost:3000"
+        : "https://instaanalyser.com";
+
+    await page.goto(`${url}/cache/${username}`, {
+      waitUntil: ["domcontentloaded"],
+      timeout: 15000,
+    });
+    // Wait for content to load
+    await page.waitForSelector("#profile-card", { timeout: 5000 });
+
+    await page.evaluate(() => {
+      return new Promise<void>((resolve) => {
+        let totalHeight = 0;
+        const distance = 100;
+        const timer = setInterval(() => {
+          const scrollHeight = document.body.scrollHeight;
+          window.scrollBy(0, distance);
+          totalHeight += distance;
+
+          if (totalHeight >= scrollHeight) {
+            clearInterval(timer);
+            resolve();
+          }
+        }, 100);
+      });
+    });
+
+    const screenshotBuffer = await page.screenshot({
+      type: "jpeg",
+      fullPage: true, // Capture the entire page
+      quality: 75,
+    });
+
+    res.set({
+      "Content-Type": "image/jpeg",
+      "Content-Length": screenshotBuffer.length,
+    });
+    res.send(screenshotBuffer);
+  } catch (error) {
+    console.log("error in long screenshot :", error);
+    res.status(500).send("Internal Server Error");
+  } finally {
+    await page.close();
+    if (process.env.NODE_ENV === "development") await browser!.close();
+    else await browser.disconnect();
+    const endTime = Date.now();
+    const executionTimeMs = endTime - startTime;
+    const executionTimeSeconds =
+      Math.round((executionTimeMs / 1000) * 100) / 100;
+    console.log(`Long Images generation took ${executionTimeSeconds} seconds`);
+  }
+});
+
 app.get("/report-video", async (req, res) => {
   const { username } = req.query;
+  console.log("video generation started for :", username);
+
   const videoPath = path.join(__dirname, `${username}-report.mp4`);
   const startTime = Date.now();
   // const browser = await globalBrowser.initBrower();
@@ -269,43 +349,45 @@ app.get("/report-video", async (req, res) => {
         process.env.NODE_ENV === "development"
           ? "http://localhost:3000"
           : "https://instaanalyser.com";
+      console.log("url :", url);
+
       await page.goto(`${url}/cache/${username}`, {
         waitUntil: ["networkidle2"],
         timeout: 60000,
       });
       // Wait for content to load
       await page.waitForSelector("#profile-card", { timeout: 30000 });
-      await delay(1000);
-      await page.evaluate(() => {
-        return new Promise<void>((resolve) => {
-          let totalHeight = 0;
-          const distance = 100;
-          const timer = setInterval(() => {
-            const scrollHeight = document.body.scrollHeight;
-            window.scrollBy(0, distance);
-            totalHeight += distance;
+      // await delay(1000);
+      // await page.evaluate(() => {
+      //   return new Promise<void>((resolve) => {
+      //     let totalHeight = 0;
+      //     const distance = 100;
+      //     const timer = setInterval(() => {
+      //       const scrollHeight = document.body.scrollHeight;
+      //       window.scrollBy(0, distance);
+      //       totalHeight += distance;
 
-            if (totalHeight >= scrollHeight) {
-              clearInterval(timer);
-              resolve();
-            }
-          }, 100);
-        });
-      });
+      //       if (totalHeight >= scrollHeight) {
+      //         clearInterval(timer);
+      //         resolve();
+      //       }
+      //     }, 100);
+      //   });
+      // });
 
-      // Wait for all images to load
-      await page.evaluate(() => {
-        const images = Array.from(document.querySelectorAll("img"));
-        return Promise.all(
-          images.map((img) => {
-            if (img.complete) return Promise.resolve();
-            return new Promise((resolve) => {
-              img.addEventListener("load", resolve);
-              img.addEventListener("error", resolve);
-            });
-          })
-        );
-      });
+      // // Wait for all images to load
+      // await page.evaluate(() => {
+      //   const images = Array.from(document.querySelectorAll("img"));
+      //   return Promise.all(
+      //     images.map((img) => {
+      //       if (img.complete) return Promise.resolve();
+      //       return new Promise((resolve) => {
+      //         img.addEventListener("load", resolve);
+      //         img.addEventListener("error", resolve);
+      //       });
+      //     })
+      //   );
+      // });
 
       // Set PDF options for single page per item
 
@@ -331,12 +413,12 @@ app.get("/report-video", async (req, res) => {
       await recorder.start(videoPath);
 
       // Wait for content to load
-      await page.waitForSelector("#profile-card", { timeout: 30000 });
-      await delay(1000);
+      // await page.waitForSelector("#profile-card", { timeout: 30000 });
+      // await delay(1000);
 
       // Start at top of page
-      await page.evaluate(() => window.scrollTo(0, 0));
-      await delay(500); // Small pause before starting scroll
+      // await page.evaluate(() => window.scrollTo(0, 0));
+      // await delay(500); // Small pause before starting scroll
 
       // Smooth scroll to bottom
       try {
@@ -398,6 +480,7 @@ app.get("/report-video", async (req, res) => {
         "Content-Type": "video/mp4",
         "Content-Disposition": `attachment; filename=${username}-report.mp4`,
       });
+      fs.unlinkSync(videoPath);
       res.send(videoBuffer);
     } catch (error) {
       console.log("error generating PDF:", error);
@@ -457,24 +540,24 @@ app.get("/report-images", async (req, res) => {
         timeout: 15000,
       });
       // Wait for content to load
-      // await page.waitForSelector("#profile-card", { timeout: 5000 });
+      await page.waitForSelector("#profile-card", { timeout: 5000 });
       // await delay(1000);
-      // await page.evaluate(() => {
-      //   return new Promise<void>((resolve) => {
-      //     let totalHeight = 0;
-      //     const distance = 100;
-      //     const timer = setInterval(() => {
-      //       const scrollHeight = document.body.scrollHeight;
-      //       window.scrollBy(0, distance);
-      //       totalHeight += distance;
+      await page.evaluate(() => {
+        return new Promise<void>((resolve) => {
+          let totalHeight = 0;
+          const distance = 100;
+          const timer = setInterval(() => {
+            const scrollHeight = document.body.scrollHeight;
+            window.scrollBy(0, distance);
+            totalHeight += distance;
 
-      //       if (totalHeight >= scrollHeight) {
-      //         clearInterval(timer);
-      //         resolve();
-      //       }
-      //     }, 100);
-      //   });
-      // });
+            if (totalHeight >= scrollHeight) {
+              clearInterval(timer);
+              resolve();
+            }
+          }, 100);
+        });
+      });
 
       // // Wait for all images to load
       // await page.evaluate(() => {
@@ -494,45 +577,52 @@ app.get("/report-images", async (req, res) => {
       // Get all profile items
       const screenshots: Buffer[] = [];
 
-      // Use page.evaluate to get all profile items and their positions
-      const itemPositions = await page.evaluate(() => {
-        const items = document.querySelectorAll(".profile-item");
-        return Array.from(items).map((item) => {
-          const rect = item.getBoundingClientRect();
-          return {
-            x: rect.x,
-            y: rect.y,
-            width: rect.width,
-            height: rect.height,
-          };
-        });
+      const items = await page.$$(`.profile-item`);
+
+      const screenshotPromises = items.map(async (item) => {
+        return item.screenshot({ type: "png" });
       });
+      const buffers = await Promise.all(screenshotPromises);
+      screenshots.push(...buffers);
+      // Use page.evaluate to get all profile items and their positions
+      // const itemPositions = await page.evaluate(() => {
+      //   const items = document.querySelectorAll(".profile-item");
+      //   return Array.from(items).map((item) => {
+      //     const rect = item.getBoundingClientRect();
+      //     return {
+      //       x: rect.x,
+      //       y: rect.y,
+      //       width: rect.width,
+      //       height: rect.height,
+      //     };
+      //   });
+      // });
 
-      // Take screenshots of each item
-      for (let i = 0; i < itemPositions.length; i++) {
-        const pos = itemPositions[i];
+      // // Take screenshots of each item
+      // for (let i = 0; i < itemPositions.length; i++) {
+      //   const pos = itemPositions[i];
 
-        // Scroll item into view
-        await page.evaluate((y) => {
-          window.scrollTo(0, y);
-        }, pos.y);
+      //   // Scroll item into view
+      //   await page.evaluate((y) => {
+      //     window.scrollTo(0, y);
+      //   }, pos.y);
 
-        // Wait for any animations to complete
+      //   // Wait for any animations to complete
 
-        // Take screenshot of the specific area
-        const screenshotBuffer = await page.screenshot({
-          clip: {
-            x: pos.x,
-            y: pos.y,
-            width: pos.width,
-            height: pos.height,
-          },
-          type: "jpeg",
-          encoding: "binary",
-        });
+      //   // Take screenshot of the specific area
+      //   const screenshotBuffer = await page.screenshot({
+      //     clip: {
+      //       x: pos.x,
+      //       y: pos.y,
+      //       width: pos.width,
+      //       height: pos.height,
+      //     },
+      //     type: "jpeg",
+      //     encoding: "binary",
+      //   });
 
-        screenshots.push(screenshotBuffer);
-      }
+      //   screenshots.push(screenshotBuffer);
+      // }
       // Create a temporary zip file
       const zipFileName = `${username}-report.zip`;
       const zipFilePath = path.join(__dirname, zipFileName);
@@ -619,24 +709,24 @@ app.get("/pdf", async (req, res) => {
         timeout: 15000,
       });
       // Wait for content to load
-      // await page.waitForSelector("#profile-card", { timeout: 10000 });
+      await page.waitForSelector("#profile-card", { timeout: 10000 });
       // await delay(1000);
-      // await page.evaluate(() => {
-      //   return new Promise<void>((resolve) => {
-      //     let totalHeight = 0;
-      //     const distance = 100;
-      //     const timer = setInterval(() => {
-      //       const scrollHeight = document.body.scrollHeight;
-      //       window.scrollBy(0, distance);
-      //       totalHeight += distance;
+      await page.evaluate(() => {
+        return new Promise<void>((resolve) => {
+          let totalHeight = 0;
+          const distance = 100;
+          const timer = setInterval(() => {
+            const scrollHeight = document.body.scrollHeight;
+            window.scrollBy(0, distance);
+            totalHeight += distance;
 
-      //       if (totalHeight >= scrollHeight) {
-      //         clearInterval(timer);
-      //         resolve();
-      //       }
-      //     }, 100);
-      //   });
-      // });
+            if (totalHeight >= scrollHeight) {
+              clearInterval(timer);
+              resolve();
+            }
+          }, 100);
+        });
+      });
 
       // // Wait for all images to load
       // await page.evaluate(() => {
@@ -662,45 +752,53 @@ app.get("/pdf", async (req, res) => {
       // Get all profile items
       const screenshots: Buffer[] = [];
 
-      // Use page.evaluate to get all profile items and their positions
-      const itemPositions = await page.evaluate(() => {
-        const items = document.querySelectorAll(".profile-item");
-        return Array.from(items).map((item) => {
-          const rect = item.getBoundingClientRect();
-          return {
-            x: rect.x,
-            y: rect.y,
-            width: rect.width,
-            height: rect.height,
-          };
-        });
+      const items = await page.$$(`.profile-item`);
+
+      const screenshotPromises = items.map(async (item) => {
+        return item.screenshot({ type: "png" });
       });
+      const buffers = await Promise.all(screenshotPromises);
+      screenshots.push(...buffers);
 
-      // Take screenshots of each item
-      for (let i = 0; i < itemPositions.length; i++) {
-        const pos = itemPositions[i];
+      // Use page.evaluate to get all profile items and their positions
+      // const itemPositions = await page.evaluate(() => {
+      //   const items = document.querySelectorAll(".profile-item");
+      //   return Array.from(items).map((item) => {
+      //     const rect = item.getBoundingClientRect();
+      //     return {
+      //       x: rect.x,
+      //       y: rect.y,
+      //       width: rect.width,
+      //       height: rect.height,
+      //     };
+      //   });
+      // });
 
-        // Scroll item into view
-        await page.evaluate((y) => {
-          window.scrollTo(0, y);
-        }, pos.y);
+      // // Take screenshots of each item
+      // for (let i = 0; i < itemPositions.length; i++) {
+      //   const pos = itemPositions[i];
 
-        // Wait for any animations to complete
+      //   // Scroll item into view
+      //   await page.evaluate((y) => {
+      //     window.scrollTo(0, y);
+      //   }, pos.y);
 
-        // Take screenshot of the specific area
-        const screenshotBuffer = await page.screenshot({
-          clip: {
-            x: pos.x,
-            y: pos.y,
-            width: pos.width,
-            height: pos.height,
-          },
-          type: "jpeg",
-          encoding: "binary",
-        });
+      //   // Wait for any animations to complete
 
-        screenshots.push(screenshotBuffer);
-      }
+      //   // Take screenshot of the specific area
+      //   const screenshotBuffer = await page.screenshot({
+      //     clip: {
+      //       x: pos.x,
+      //       y: pos.y,
+      //       width: pos.width,
+      //       height: pos.height,
+      //     },
+      //     type: "jpeg",
+      //     encoding: "binary",
+      //   });
+
+      //   screenshots.push(screenshotBuffer);
+      // }
       const pdfs = [];
       // Create a PDF document
 
