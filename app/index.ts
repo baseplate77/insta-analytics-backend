@@ -29,8 +29,8 @@ const app: Express = express();
 const port = process.env.PORT || 3000;
 
 if (process.env.NODE_ENV === "development") {
-  app.use(cors());
 }
+app.use(cors());
 app.use(express.json());
 
 app.get("/webhook-ig", async (req: Request, res: Response) => {
@@ -259,7 +259,7 @@ app.get("/long-screenshot", async (req, res) => {
   await page.setViewport({
     width: 1200,
     height: 800,
-    deviceScaleFactor: 4, // Increase resolution/sharpness
+    deviceScaleFactor: 2, // Increase resolution/sharpness
   });
 
   try {
