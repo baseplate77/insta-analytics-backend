@@ -28,9 +28,9 @@ dotenv.config();
 const app: Express = express();
 const port = process.env.PORT || 3000;
 
-if (process.env.NODE_ENV === "development") {
-  app.use(cors());
-}
+// if (process.env.NODE_ENV === "development") {
+app.use(cors());
+// }
 app.use(express.json());
 
 app.get("/webhook-ig", async (req: Request, res: Response) => {
@@ -180,65 +180,6 @@ app.get("/api-proxy", async (req, res) => {
     console.log("errir :", error);
     res.status(500).send(error);
   }
-});
-app.get("/test-video", async (req, res) => {
-  const startTime = Date.now();
-  const browser = await puppeteer.connect({
-    browserWSEndpoint: `wss://production-lon.browserless.io?token=${process.env.BROWSERLESS_TOKEN}&headless=false&record=true&--window-size=1920,1080`,
-  });
-  console.log("started");
-
-  let page = await browser.newPage();
-
-  // Set fixed viewport dimensions to 1920x1080
-  // await page.setViewport({
-  //   width: 1920,
-  //   height: 1080,
-  //   deviceScaleFactor: 1,
-  // });
-
-  // Enable full screen mode
-  await page.evaluate(() => {
-    document.documentElement.requestFullscreen();
-  });
-
-  await page.goto("https://browserless.io");
-
-  // Configure recording with specific dimensions
-  const cdp = await page.createCDPSession();
-
-  // Set recording parameters
-  // await cdp.send("Page.setScreencastViewport" as any, {
-  //   width: 1920,
-  //   height: 1080,
-  //   scale: 1,
-  // });
-
-  await cdp.send("Browserless.startRecording" as any, {
-    width: 1920,
-    height: 1080,
-    frameRate: 30,
-  });
-
-  await delay(5000);
-  const response = await cdp.send("Browserless.stopRecording" as any);
-  // ☝️ The response is a string containing a valid webm file
-
-  const file = Buffer.from(response.value, "binary");
-  await fs.promises.writeFile("./recording.webm", file);
-
-  await browser.close();
-  console.log("end");
-  const endTime = Date.now();
-  const executionTimeMs = endTime - startTime;
-  const executionTimeSeconds = Math.round((executionTimeMs / 1000) * 100) / 100;
-  console.log(`Video generation took ${executionTimeSeconds} seconds`);
-
-  res.set({
-    "Content-Type": "video/webm",
-    "Content-Disposition": "attachment; filename=recording.webm",
-  });
-  res.send(file);
 });
 
 app.get("/long-screenshot", async (req, res) => {
@@ -1347,6 +1288,7 @@ app.get("/profile-report2", async (req: Request, res: Response) => {
   try {
     const { username } = req.query;
     console.log("started");
+
     const startTime = Date.now();
     const url = `https://app.notjustanalytics.com/analysis/${username}`;
     const query = `mutation captureNotJustAnalyticsData {\n  reject(type: [image, media, font, stylesheet]) {\n    enabled\n    time\n  }\n  openPage: goto(\n    url: ${JSON.stringify(url)} \n    waitUntil: domContentLoaded\n   ) {\n    status\n  }\n  request(\n    url: "*profile/ig/analyze*"\n    method: POST\n    type: xhr\n    operator: and\n    wait: true\n    timeout: 10000\n  ) {\n    url\n    type\n    method\n  }\n  waitForTimeout(time: 5000) {\n    time\n  }\n  analyzeResponse: response(\n    url: "*profile/ig/analyze*"\n    method: POST\n    operator: and\n    wait: true\n    timeout: 10000\n  ) {\n    url\n    status\n    body\n  }\n  analyzeFollower: response(\n    url: "*ig/history*"\n    method: GET\n    type: xhr\n    operator: and\n    wait: true\n    timeout: 5000\n  ) {\n    url\n    status\n    body\n  }\n}`;
@@ -1356,6 +1298,12 @@ app.get("/profile-report2", async (req: Request, res: Response) => {
       url: "https://production-sfo.browserless.io/chrome/bql",
       params: {
         token: process.env.BROWSERLESS_TOKEN!,
+        proxy: "residential",
+        proxySticky: false,
+        proxyCountry: "us",
+        humanlike: true,
+        blockConsentModals: true,
+        blockAds: true,
       },
       headers: {
         "Content-Type": "application/json",
@@ -1375,6 +1323,8 @@ app.get("/profile-report2", async (req: Request, res: Response) => {
     let profileData, followingData;
 
     try {
+      console.log("data :", data);
+
       const rawBody = data.data.analyzeResponse[0].body;
 
       profileData = JSON.parse(rawBody);
@@ -1392,6 +1342,8 @@ app.get("/profile-report2", async (req: Request, res: Response) => {
       console.error("Error parsing follower data:", err);
       followingData = {};
     }
+    console.log("profileData :", profileData);
+
     console.log(`Data sent in ${executionTimeSeconds} seconds`);
 
     res.send({
